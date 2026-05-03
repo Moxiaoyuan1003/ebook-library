@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Text, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
 
@@ -16,3 +17,5 @@ class KnowledgeCard(Base):
     source_passage = Column(Text)
     annotation = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    book = relationship("Book", foreign_keys=[source_book_id])

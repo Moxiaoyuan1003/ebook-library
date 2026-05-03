@@ -103,13 +103,13 @@ class PGManager:
         except subprocess.CalledProcessError:
             pass  # Database may already exist
 
-    def enable_pgvector(self) -> None:
+    def enable_pgvector(self, db_name: str = "ebook_library") -> None:
         """Enable the pgvector extension."""
         psql = self._find_pg_binary("psql")
         env = os.environ.copy()
         env["PGDATA"] = str(self.data_dir)
         subprocess.run(
-            [psql, "-h", "localhost", "-p", str(self.port), "-U", self.user, "-d", "ebook_library", "-c", "CREATE EXTENSION IF NOT EXISTS vector;"],
+            [psql, "-h", "localhost", "-p", str(self.port), "-U", self.user, "-d", db_name, "-c", "CREATE EXTENSION IF NOT EXISTS vector;"],
             check=True,
             env=env,
             capture_output=True,
