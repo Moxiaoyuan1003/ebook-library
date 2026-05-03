@@ -9,6 +9,7 @@ export interface Book {
   isbn: string | null;
   publisher: string | null;
   cover_url: string | null;
+  file_path: string;
   file_format: string;
   reading_status: string;
   rating: number | null;
