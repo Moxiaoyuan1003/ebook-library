@@ -1,0 +1,132 @@
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from typing import Optional
+from uuid import UUID
+
+from app.models import Book, Passage
+from app.schemas.search import SearchResult
+
+
+class SearchEngine:
+    """Hybrid search engine with keyword and semantic search."""
+
+    def __init__(self, db: Session, ai_service=None):
+        self.db = db
+        self.ai_service = ai_service
+
+    async def search(
+        self,
+        query: str,
+        search_type: str = "keyword",
+        top_k: int = 10,
+    ) -> list[SearchResult]:
+        if search_type == "semantic":
+            return await self._semantic_search(query, top_k)
+        return self._keyword_search(query, top_k)
+
+    def _keyword_search(self, query: str, top_k: int) -> list[SearchResult]:
+        """PostgreSQL full-text search on book titles and authors."""
+        results = (
+            self.db.query(Book)
+            .filter(
+                Book.title.ilike(f"%{query}%")
+                | Book.author.ilike(f"%{query}%")
+                | Book.isbn.ilike(f"%{query}%")
+            )
+            .limit(top_k)
+            .all()
+        )
+
+        return [
+            SearchResult(
+                book_id=book.id,
+                book_title=book.title,
+                chapter=None,
+                page_number=None,
+                content=book.summary or "",
+                score=1.0,
+            )
+            for book in results
+        ]
+
+    async def _semantic_search(self, query: str, top_k: int) -> list[SearchResult]:
+        """Vector similarity search using pgvector."""
+        if not self.ai_service:
+            raise ValueError("AI service required for semantic search")
+
+        query_embedding = await self.ai_service.get_embedding(query)
+
+        # Use pgvector cosine similarity
+        results = (
+            self.db.query(Passage)
+            .order_by(Passage.embedding.cosine_distance(query_embedding))
+            .limit(top_k)
+            .all()
+        )
+
+        search_results = []
+        for passage in results:
+            book = self.db.query(Book).filter(Book.id == passage.book_id).first()
+            if book:
+                search_results.append(
+                    SearchResult(
+                        book_id=book.id,
+                        book_title=book.title,
+                        chapter=passage.chapter,
+                        page_number=passage.page_number,
+                        content=passage.content,
+                        score=0.0,  # pgvector doesn't return score directly
+                    )
+                )
+
+        return search_results
+
+    async def index_book(self, book_id: UUID, full_text: str, chapters: list[dict]) -> int:
+        """Index a book's content for semantic search."""
+        if not self.ai_service:
+            raise ValueError("AI service required for indexing")
+
+        # Delete existing passages for this book
+        self.db.query(Passage).filter(Passage.book_id == book_id).delete()
+
+        # Split text into chunks
+        chunk_size = 2000
+        overlap = 200
+        chunks = []
+        for i in range(0, len(full_text), chunk_size - overlap):
+            chunk = full_text[i:i + chunk_size]
+            if chunk.strip():
+                chunks.append(chunk)
+
+        # Generate embeddings and store passages
+        indexed = 0
+        for i, chunk in enumerate(chunks):
+            try:
+                embedding = await self.ai_service.get_embedding(chunk)
+
+                # Find which chapter this chunk belongs to
+                chapter_name = None
+                page_num = None
+                char_pos = 0
+                for ch in chapters:
+                    ch_content = ch.get("content", "")
+                    if char_pos <= i < char_pos + len(ch_content):
+                        chapter_name = ch.get("title")
+                        page_num = ch.get("page_start")
+                        break
+                    char_pos += len(ch_content)
+
+                passage = Passage(
+                    book_id=book_id,
+                    chapter=chapter_name,
+                    page_number=page_num,
+                    content=chunk,
+                    embedding=embedding,
+                )
+                self.db.add(passage)
+                indexed += 1
+            except Exception:
+                continue
+
+        self.db.commit()
+        return indexed
