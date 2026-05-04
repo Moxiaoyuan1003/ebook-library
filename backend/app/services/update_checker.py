@@ -49,8 +49,8 @@ async def check_for_update() -> dict:
 def _compare_versions(latest: str, current: str) -> bool:
     """Return True if *latest* > *current* using semver comparison."""
     try:
-        l = tuple(int(x) for x in latest.split("."))
-        c = tuple(int(x) for x in current.split("."))
-        return l > c
+        latest_tuple = tuple(int(x) for x in latest.split("."))
+        current_tuple = tuple(int(x) for x in current.split("."))
+        return latest_tuple > current_tuple
     except (ValueError, AttributeError):
         return False

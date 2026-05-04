@@ -43,7 +43,7 @@ def _patch_uuid_columns_for_sqlite():
 # Patch BEFORE any create_all call
 _patch_uuid_columns_for_sqlite()
 
-from app.main import app
+from app.main import app  # noqa: E402
 
 # Use StaticPool so all connections share the same in-memory database
 test_engine = create_engine(
@@ -343,7 +343,7 @@ def test_delete_card_cascades_links():
 def test_list_cards_ordered_by_updated_at():
     """Cards should be ordered by updated_at descending."""
     card1 = _create_card(title="First", content="1")
-    card2 = _create_card(title="Second", content="2")
+    _create_card(title="Second", content="2")
     # Update card1 so it becomes most recent
     client.put(f"/api/knowledge-cards/{card1['id']}", json={"title": "First Updated"})
     resp = client.get("/api/knowledge-cards/", params={"page_size": 10})

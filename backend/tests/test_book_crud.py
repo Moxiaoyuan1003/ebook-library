@@ -47,7 +47,7 @@ def _patch_uuid_columns_for_sqlite():
 # Patch BEFORE any create_all call
 _patch_uuid_columns_for_sqlite()
 
-from app.main import app
+from app.main import app  # noqa: E402
 
 # Use StaticPool so all connections share the same in-memory database
 test_engine = create_engine(

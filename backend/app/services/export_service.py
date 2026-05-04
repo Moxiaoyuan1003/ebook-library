@@ -124,12 +124,10 @@ def export_cards_csv(db: Session, filters: dict) -> tuple[str, bytes]:
 def export_cards_pdf(db: Session, filters: dict) -> tuple[str, bytes]:
     """Export knowledge cards as PDF."""
     try:
-        from reportlab.lib.enums import TA_LEFT
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.styles import getSampleStyleSheet
         from reportlab.lib.units import cm
         from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
         from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
     except ImportError:
         raise RuntimeError("reportlab is not installed. Install it with: pip install reportlab")

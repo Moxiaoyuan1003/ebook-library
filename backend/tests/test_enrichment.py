@@ -181,7 +181,6 @@ async def test_http_get_retries_on_429(monkeypatch):
     service = MetadataEnrichmentService()
 
     call_count = 0
-    original_sleep = None
 
     class MockResponse:
         def __init__(self, status_code, json_data=None):
@@ -213,7 +212,6 @@ async def test_http_get_retries_on_429(monkeypatch):
     import asyncio
 
     sleeps = []
-    original_sleep_func = asyncio.sleep
 
     async def mock_sleep(duration):
         sleeps.append(duration)
@@ -228,6 +226,6 @@ async def test_http_get_retries_on_429(monkeypatch):
 
 def test_data_covers_directory_path():
     """Service should reference data/covers directory."""
-    service = MetadataEnrichmentService.__new__(MetadataEnrichmentService)
+    MetadataEnrichmentService.__new__(MetadataEnrichmentService)
     # Verify the COVERS_DIR attribute exists
     assert hasattr(MetadataEnrichmentService, "COVERS_DIR") or True

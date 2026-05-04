@@ -32,7 +32,7 @@ async def websocket_progress(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_text()
+            _ = await websocket.receive_text()
             # Handle incoming messages if needed
     except WebSocketDisconnect:
         manager.disconnect(websocket)

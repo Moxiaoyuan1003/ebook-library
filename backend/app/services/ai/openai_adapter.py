@@ -29,7 +29,10 @@ class OpenAIAdapter(AIServiceInterface):
             messages=[
                 {
                     "role": "system",
-                    "content": f"分析以下图书内容，生成{max_tags}个最相关的标签（主题、领域、难度等级）。只返回标签列表，用逗号分隔。",
+                    "content": (
+                        f"分析以下图书内容，生成{max_tags}个最相关的标签"
+                        f"（主题、领域、难度等级）。只返回标签列表，用逗号分隔。"
+                    ),
                 },
                 {"role": "user", "content": text[:3000]},
             ],
