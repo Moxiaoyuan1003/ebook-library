@@ -47,5 +47,5 @@ linux:
 
 publish:
   provider: github
-  owner: YOUR_GITHUB_USERNAME
+  owner: Moxiaoyuan1003
   repo: ebook-library
