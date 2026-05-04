@@ -7,6 +7,34 @@ import type { TocItem } from '../types/reader';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
+const PDF_STANDARD_WIDTH = 612; // points
+const CONTAINER_PADDING = 48;   // 24px * 2 sides
+const ZOOM_STEP = 0.2;
+const ZOOM_MAX = 2.0;
+const ZOOM_MIN = 0.5;
+
+const resolveOutline = async (pdf: any, outline: any[]): Promise<TocItem[]> => {
+  const items: TocItem[] = [];
+  for (const item of outline) {
+    let pageNumber = 0;
+    try {
+      if (item.dest) {
+        const dest = typeof item.dest === 'string' ? await pdf.getDestination(item.dest) : item.dest;
+        if (dest) {
+          const pageIndex = await pdf.getPageIndex(dest[0]);
+          pageNumber = pageIndex + 1;
+        }
+      }
+    } catch {}
+    items.push({
+      title: item.title,
+      pageNumber,
+      items: item.items?.length ? await resolveOutline(pdf, item.items) : undefined,
+    });
+  }
+  return items;
+};
+
 export interface PdfViewerRef {
   goToPage: (page: number) => void;
   handleZoomIn: () => void;
@@ -48,28 +76,6 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ filePath, onPageCh
     }
   }, [onPageChange, onTocLoad, currentPage]);
 
-  const resolveOutline = async (pdf: any, outline: any[]): Promise<TocItem[]> => {
-    const items: TocItem[] = [];
-    for (const item of outline) {
-      let pageNumber = 0;
-      try {
-        if (item.dest) {
-          const dest = typeof item.dest === 'string' ? await pdf.getDestination(item.dest) : item.dest;
-          if (dest) {
-            const pageIndex = await pdf.getPageIndex(dest[0]);
-            pageNumber = pageIndex + 1;
-          }
-        }
-      } catch {}
-      items.push({
-        title: item.title,
-        pageNumber,
-        items: item.items?.length ? await resolveOutline(pdf, item.items) : undefined,
-      });
-    }
-    return items;
-  };
-
   const goToPage = useCallback((page: number) => {
     if (page >= 1 && page <= numPages) {
       setCurrentPage(page);
@@ -79,7 +85,7 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ filePath, onPageCh
 
   const handleZoomIn = useCallback(() => {
     setScale((s) => {
-      const newScale = Math.min(s + 0.2, 2.0);
+      const newScale = Math.min(s + ZOOM_STEP, ZOOM_MAX);
       onZoomChange?.(newScale);
       return newScale;
     });
@@ -87,15 +93,15 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ filePath, onPageCh
 
   const handleZoomOut = useCallback(() => {
     setScale((s) => {
-      const newScale = Math.max(s - 0.2, 0.5);
+      const newScale = Math.max(s - ZOOM_STEP, ZOOM_MIN);
       onZoomChange?.(newScale);
       return newScale;
     });
   }, [onZoomChange]);
   const handleFitWidth = useCallback(() => {
     if (containerRef.current) {
-      const containerWidth = containerRef.current.clientWidth - 48;
-      const newScale = containerWidth / 612;
+      const containerWidth = containerRef.current.clientWidth - CONTAINER_PADDING;
+      const newScale = containerWidth / PDF_STANDARD_WIDTH;
       setScale(newScale);
       onZoomChange?.(newScale);
     }
