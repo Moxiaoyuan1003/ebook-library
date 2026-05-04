@@ -6,6 +6,11 @@ from app.models import Book, Passage
 from app.schemas.search import CrossBookPassage, CrossBookSource, SearchResult
 
 
+def _is_postgres(db: Session) -> bool:
+    """Check if the session is connected to PostgreSQL."""
+    return db.bind.dialect.name == "postgresql"
+
+
 class SearchEngine:
     """Hybrid search engine with keyword and semantic search."""
 
@@ -44,8 +49,40 @@ class SearchEngine:
             for book in results
         ]
 
+    def _content_keyword_search(self, query: str, top_k: int) -> list[SearchResult]:
+        """Fallback text search on passage content (used when pgvector unavailable)."""
+        results = (
+            self.db.query(Passage)
+            .filter(Passage.content.ilike(f"%{query}%"))
+            .limit(top_k)
+            .all()
+        )
+
+        search_results = []
+        for passage in results:
+            book = self.db.query(Book).filter(Book.id == passage.book_id).first()
+            if book:
+                search_results.append(
+                    SearchResult(
+                        book_id=book.id,
+                        book_title=book.title,
+                        chapter=passage.chapter,
+                        page_number=passage.page_number,
+                        content=passage.content,
+                        score=0.5,
+                    )
+                )
+
+        return search_results
+
     async def _semantic_search(self, query: str, top_k: int) -> list[SearchResult]:
-        """Vector similarity search using pgvector."""
+        """Vector similarity search using pgvector.
+
+        Falls back to content keyword search on non-PostgreSQL databases.
+        """
+        if not _is_postgres(self.db):
+            return self._content_keyword_search(query, top_k)
+
         if not self.ai_service:
             raise ValueError("AI service required for semantic search")
 
@@ -88,6 +125,8 @@ class SearchEngine:
             if chunk.strip():
                 chunks.append(chunk)
 
+        is_pg = _is_postgres(self.db)
+
         # Generate embeddings and store passages
         indexed = 0
         for i, chunk in enumerate(chunks):
@@ -106,12 +145,16 @@ class SearchEngine:
                         break
                     char_pos += len(ch_content)
 
+                # On PostgreSQL, store embedding as vector;
+                # on SQLite, store as JSON list
+                stored_embedding = embedding if is_pg else list(embedding) if embedding else None
+
                 passage = Passage(
                     book_id=book_id,
                     chapter=chapter_name,
                     page_number=page_num,
                     content=chunk,
-                    embedding=embedding,
+                    embedding=stored_embedding,
                 )
                 self.db.add(passage)
                 indexed += 1
