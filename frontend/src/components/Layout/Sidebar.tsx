@@ -1,5 +1,5 @@
 import { Menu } from 'antd';
-import { BookOutlined, StarOutlined, HistoryOutlined, FolderOutlined, PlusOutlined } from '@ant-design/icons';
+import { BookOutlined, StarOutlined, HistoryOutlined, FolderOutlined, PlusOutlined, FileTextOutlined } from '@ant-design/icons';
 
 const sidebarItems = [
   { key: 'all', icon: <BookOutlined />, label: '全部书籍' },
@@ -11,6 +11,8 @@ const sidebarItems = [
     { key: 'shelf-novel', icon: <FolderOutlined />, label: '小说' },
     { key: 'add-shelf', icon: <PlusOutlined />, label: '新建书架' },
   ]},
+  { type: 'divider' as const },
+  { key: 'knowledge-cards', icon: <FileTextOutlined />, label: '知识卡片' },
 ];
 
 export default function Sidebar() {

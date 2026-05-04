@@ -5,6 +5,7 @@ import SearchPage from './pages/Search/SearchPage';
 import AiAssistantPage from './pages/AiAssistant/AiAssistantPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import ReaderPage from './pages/Reader/ReaderPage';
+import KnowledgeCardsPage from './pages/KnowledgeCards/KnowledgeCardsPage';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <Route path="ai" element={<AiAssistantPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="reader/:bookId" element={<ReaderPage />} />
+          <Route path="knowledge-cards" element={<KnowledgeCardsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
