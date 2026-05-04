@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import books, tags, bookshelves, search, ai, annotations, ws, knowledge_cards
+from app.api import books, tags, bookshelves, search, ai, annotations, ws, knowledge_cards, system
 from app.core.config import settings
 
 app = FastAPI(
@@ -25,6 +25,7 @@ app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
 app.include_router(annotations.router, prefix="/api/annotations", tags=["annotations"])
 app.include_router(ws.router, prefix="/ws", tags=["websocket"])
 app.include_router(knowledge_cards.router, prefix="/api/knowledge-cards", tags=["knowledge-cards"])
+app.include_router(system.router, prefix="/api/system", tags=["system"])
 
 
 @app.get("/api/health")
