@@ -32,3 +32,8 @@ app.include_router(export.router, prefix="/api/export", tags=["export"])
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "version": settings.APP_VERSION}
+
+
+if __name__ == "__main__":
+    from app.core.cli import main
+    main()
