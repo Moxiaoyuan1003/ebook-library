@@ -118,7 +118,9 @@ describe('AnnotationSidebar', () => {
       expect(screen.getByText('This is a highlighted passage')).toBeInTheDocument();
     });
 
-    const annotationItem = screen.getByText('This is a highlighted passage').closest('.ant-list-item');
+    const annotationItem = screen
+      .getByText('This is a highlighted passage')
+      .closest('.ant-list-item');
     expect(annotationItem).toBeTruthy();
   });
 });

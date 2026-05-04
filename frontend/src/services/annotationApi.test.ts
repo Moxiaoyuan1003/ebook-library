@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import axios from 'axios';
 import { annotationApi } from './annotationApi';
 
 const { mockGet, mockPost, mockPut, mockDelete } = vi.hoisted(() => ({
@@ -46,7 +45,9 @@ describe('annotationApi', () => {
 
   it('update sends PUT with id and data', async () => {
     const data = { note_content: 'updated note' };
-    const response = { data: { id: 'ann-1', book_id: 'book-123', type: 'note', ...data, created_at: '2024-01-01' } };
+    const response = {
+      data: { id: 'ann-1', book_id: 'book-123', type: 'note', ...data, created_at: '2024-01-01' },
+    };
     mockPut.mockResolvedValue(response);
 
     const result = await annotationApi.update('ann-1', data);

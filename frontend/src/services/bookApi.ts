@@ -32,9 +32,13 @@ export const bookApi = {
   create: (data: FormData) => api.post<Book>('/books/', data),
   update: (id: string, data: Partial<Book>) => api.put<Book>(`/books/${id}`, data),
   delete: (id: string) => api.delete(`/books/${id}`),
-  importFile: (filePath: string) => api.post<Book>('/books/import/file', null, { params: { file_path: filePath } }),
-  importDirectory: (directory: string) => api.post('/books/import/directory', null, { params: { directory } }),
+  importFile: (filePath: string) =>
+    api.post<Book>('/books/import/file', null, { params: { file_path: filePath } }),
+  importDirectory: (directory: string) =>
+    api.post('/books/import/directory', null, { params: { directory } }),
   getProgress: (id: string) => api.get(`/books/${id}/progress`),
-  updateProgress: (id: string, data: { current_page?: number; current_cfi?: string; progress_percent?: number }) =>
-    api.put(`/books/${id}/progress`, data),
+  updateProgress: (
+    id: string,
+    data: { current_page?: number; current_cfi?: string; progress_percent?: number },
+  ) => api.put(`/books/${id}/progress`, data),
 };

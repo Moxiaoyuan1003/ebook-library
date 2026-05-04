@@ -2,7 +2,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Drawer, List, Spin, message, Space, InputNumber, Tag } from 'antd';
-import { ArrowLeftOutlined, BookOutlined, LeftOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined, HighlightOutlined, MessageOutlined } from '@ant-design/icons';
+import {
+  ArrowLeftOutlined,
+  BookOutlined,
+  LeftOutlined,
+  RightOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
+  HighlightOutlined,
+  MessageOutlined,
+} from '@ant-design/icons';
 import { bookApi, Book } from '../../services/bookApi';
 import { annotationApi } from '../../services/annotationApi';
 import type { Annotation } from '../../services/annotationApi';
@@ -26,7 +35,12 @@ export default function ReaderPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [zoom, setZoom] = useState(100);
   const [showAnnotations, setShowAnnotations] = useState(false);
-  const [selectionMenu, setSelectionMenu] = useState<{ visible: boolean; x: number; y: number; text: string }>({ visible: false, x: 0, y: 0, text: '' });
+  const [selectionMenu, setSelectionMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    text: string;
+  }>({ visible: false, x: 0, y: 0, text: '' });
   const [showChat, setShowChat] = useState(false);
   const [chatContext, setChatContext] = useState('');
 
@@ -97,7 +111,12 @@ export default function ReaderPage() {
 
   const handleTextSelect = (text: string, rectOrCfi: DOMRect | string) => {
     if (rectOrCfi instanceof DOMRect) {
-      setSelectionMenu({ visible: true, x: rectOrCfi.left + rectOrCfi.width / 2, y: rectOrCfi.top - 10, text });
+      setSelectionMenu({
+        visible: true,
+        x: rectOrCfi.left + rectOrCfi.width / 2,
+        y: rectOrCfi.top - 10,
+        text,
+      });
     } else {
       // EPUB — position near center of screen
       setSelectionMenu({ visible: true, x: window.innerWidth / 2, y: 100, text });
@@ -122,11 +141,14 @@ export default function ReaderPage() {
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(selectionMenu.text).then(() => {
-      message.success('已复制');
-    }).catch(() => {
-      message.error('复制失败');
-    });
+    navigator.clipboard
+      .writeText(selectionMenu.text)
+      .then(() => {
+        message.success('已复制');
+      })
+      .catch(() => {
+        message.error('复制失败');
+      });
     setSelectionMenu({ ...selectionMenu, visible: false });
   };
 
@@ -144,7 +166,13 @@ export default function ReaderPage() {
   };
 
   if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><Spin size="large" /></div>;
+    return (
+      <div
+        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}
+      >
+        <Spin size="large" />
+      </div>
+    );
   }
 
   if (!book) {
@@ -156,13 +184,27 @@ export default function ReaderPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', background: '#141414', borderBottom: '1px solid #303030', gap: 8 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 16px',
+          background: '#141414',
+          borderBottom: '1px solid #303030',
+          gap: 8,
+        }}
+      >
         <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/')} />
         <span style={{ flex: 1, textAlign: 'center', fontSize: 14 }}>{book.title}</span>
         <Space>
           {isPdf ? (
             <>
-              <Button icon={<LeftOutlined />} type="text" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} />
+              <Button
+                icon={<LeftOutlined />}
+                type="text"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+              />
               <InputNumber
                 min={1}
                 max={totalPages || 1}
@@ -172,7 +214,12 @@ export default function ReaderPage() {
                 style={{ width: 60 }}
               />
               <span style={{ color: '#888', fontSize: 12 }}>/ {totalPages}</span>
-              <Button icon={<RightOutlined />} type="text" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages} />
+              <Button
+                icon={<RightOutlined />}
+                type="text"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+              />
               <span style={{ width: 1, height: 16, background: '#303030' }} />
               <Button icon={<ZoomOutOutlined />} type="text" onClick={handleZoomOut} />
               <Tag style={{ fontSize: 11 }}>{zoom}%</Tag>
@@ -183,7 +230,11 @@ export default function ReaderPage() {
           )}
           <span style={{ width: 1, height: 16, background: '#303030' }} />
           <Button icon={<BookOutlined />} type="text" onClick={() => setShowToc(true)} />
-          <Button icon={<HighlightOutlined />} type="text" onClick={() => setShowAnnotations(true)} />
+          <Button
+            icon={<HighlightOutlined />}
+            type="text"
+            onClick={() => setShowAnnotations(true)}
+          />
           <Button icon={<MessageOutlined />} type="text" onClick={() => setShowChat(!showChat)} />
         </Space>
       </div>
@@ -206,7 +257,9 @@ export default function ReaderPage() {
             filePath={book.file_path}
             onLocationChange={(cfi, progress) => {
               if (bookId) {
-                bookApi.updateProgress(bookId, { current_cfi: cfi, progress_percent: progress }).catch(() => {});
+                bookApi
+                  .updateProgress(bookId, { current_cfi: cfi, progress_percent: progress })
+                  .catch(() => {});
               }
             }}
             onTocLoad={setToc}
@@ -221,7 +274,13 @@ export default function ReaderPage() {
       </div>
 
       {/* TOC Drawer */}
-      <Drawer title="目录" placement="right" onClose={() => setShowToc(false)} open={showToc} width={300}>
+      <Drawer
+        title="目录"
+        placement="right"
+        onClose={() => setShowToc(false)}
+        open={showToc}
+        width={300}
+      >
         <List
           dataSource={toc}
           renderItem={(item: TocItem) => (
@@ -238,7 +297,9 @@ export default function ReaderPage() {
             >
               <span style={{ fontSize: 13 }}>{item.title}</span>
               {isPdf && (
-                <span style={{ color: '#888', fontSize: 11, marginLeft: 'auto' }}>P.{item.pageNumber}</span>
+                <span style={{ color: '#888', fontSize: 11, marginLeft: 'auto' }}>
+                  P.{item.pageNumber}
+                </span>
               )}
             </List.Item>
           )}
@@ -272,7 +333,10 @@ export default function ReaderPage() {
           visible={showChat}
           bookId={bookId}
           selectedText={chatContext}
-          onClose={() => { setShowChat(false); setChatContext(''); }}
+          onClose={() => {
+            setShowChat(false);
+            setChatContext('');
+          }}
         />
       )}
     </div>

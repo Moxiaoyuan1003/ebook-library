@@ -15,11 +15,14 @@ export default function AiConfig() {
     <Card title="AI 配置">
       <Form layout="vertical">
         <Form.Item label="AI 服务提供商">
-          <Select value={config?.provider || 'openai'} options={[
-            { value: 'openai', label: 'OpenAI' },
-            { value: 'claude', label: 'Claude' },
-            { value: 'ollama', label: 'Ollama (本地)' },
-          ]} />
+          <Select
+            value={config?.provider || 'openai'}
+            options={[
+              { value: 'openai', label: 'OpenAI' },
+              { value: 'claude', label: 'Claude' },
+              { value: 'ollama', label: 'Ollama (本地)' },
+            ]}
+          />
         </Form.Item>
         <Form.Item label="OpenAI API Key">
           <Input.Password placeholder="sk-..." />

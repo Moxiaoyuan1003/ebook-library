@@ -146,12 +146,8 @@ export default function TextSelectionMenu({
                     border: '2px solid transparent',
                     transition: 'border-color 0.15s',
                   }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.borderColor = '#fff')
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.borderColor = 'transparent')
-                  }
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
                 />
               ))}
             </div>

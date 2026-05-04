@@ -27,7 +27,11 @@ export const useBookStore = create<BookState>((set, get) => ({
     set({ loading: true });
     try {
       const { page, pageSize, searchQuery } = get();
-      const response = await bookApi.list({ page, page_size: pageSize, search: searchQuery || undefined });
+      const response = await bookApi.list({
+        page,
+        page_size: pageSize,
+        search: searchQuery || undefined,
+      });
       set({ books: response.data.items, total: response.data.total, loading: false });
     } catch (error) {
       set({ loading: false });

@@ -1,12 +1,26 @@
 import { useEffect, useState } from 'react';
 import {
-  Card, Tag, Input, Select, Button, Empty, Spin, Pagination,
-  Drawer, Modal, Form, Popconfirm, Space, message,
+  Card,
+  Tag,
+  Input,
+  Select,
+  Button,
+  Empty,
+  Spin,
+  Pagination,
+  Drawer,
+  Modal,
+  Form,
+  Popconfirm,
+  Space,
+  message,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, FileTextOutlined, LinkOutlined } from '@ant-design/icons';
 import { useKnowledgeCardStore } from '../../stores/knowledgeCardStore';
 import {
-  knowledgeCardApi, KnowledgeCard, KnowledgeCardCreateData,
+  knowledgeCardApi,
+  KnowledgeCard,
+  KnowledgeCardCreateData,
 } from '../../services/knowledgeCardApi';
 
 const CARD_TYPE_COLORS: Record<string, string> = {
@@ -30,8 +44,17 @@ const cardTypeOptions = [
 
 export default function KnowledgeCardsPage() {
   const {
-    cards, total, page, pageSize, loading, searchQuery, cardTypeFilter,
-    fetchCards, setSearchQuery, setCardTypeFilter, setPage,
+    cards,
+    total,
+    page,
+    pageSize,
+    loading,
+    searchQuery,
+    cardTypeFilter,
+    fetchCards,
+    setSearchQuery,
+    setCardTypeFilter,
+    setPage,
   } = useKnowledgeCardStore();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -108,7 +131,14 @@ export default function KnowledgeCardsPage() {
   return (
     <div style={{ padding: 24 }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 24,
+        }}
+      >
         <h2 style={{ margin: 0, color: '#fff' }}>知识卡片</h2>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <Input.Search
@@ -135,12 +165,20 @@ export default function KnowledgeCardsPage() {
 
       {/* Card Grid */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 48 }}><Spin size="large" /></div>
+        <div style={{ textAlign: 'center', padding: 48 }}>
+          <Spin size="large" />
+        </div>
       ) : cards.length === 0 ? (
         <Empty description="暂无知识卡片" />
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+              gap: 16,
+            }}
+          >
             {cards.map((card) => (
               <Card
                 key={card.id}
@@ -178,13 +216,27 @@ export default function KnowledgeCardsPage() {
                   }
                   description={
                     <div>
-                      <div style={{ fontSize: 12, color: '#888', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: '#888',
+                          marginBottom: 8,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                        }}
+                      >
                         {card.content}
                       </div>
                       {card.tags && card.tags.length > 0 && (
                         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                           {card.tags.map((tag) => (
-                            <Tag key={tag} style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px' }}>
+                            <Tag
+                              key={tag}
+                              style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px' }}
+                            >
                               {tag}
                             </Tag>
                           ))}
@@ -197,7 +249,13 @@ export default function KnowledgeCardsPage() {
             ))}
           </div>
           <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <Pagination current={page} total={total} pageSize={pageSize} onChange={setPage} showSizeChanger={false} />
+            <Pagination
+              current={page}
+              total={total}
+              pageSize={pageSize}
+              onChange={setPage}
+              showSizeChanger={false}
+            />
           </div>
         </>
       )}
@@ -211,7 +269,9 @@ export default function KnowledgeCardsPage() {
         styles={{ body: { background: '#0a0a0a' }, header: { background: '#1a1a1a' } }}
       >
         {drawerLoading ? (
-          <div style={{ textAlign: 'center', padding: 48 }}><Spin size="large" /></div>
+          <div style={{ textAlign: 'center', padding: 48 }}>
+            <Spin size="large" />
+          </div>
         ) : selectedCard ? (
           <div>
             <div style={{ marginBottom: 16 }}>
@@ -221,14 +281,26 @@ export default function KnowledgeCardsPage() {
             </div>
 
             <h4 style={{ color: '#fff', marginBottom: 8 }}>内容</h4>
-            <div style={{ color: '#ccc', marginBottom: 24, whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
+            <div
+              style={{ color: '#ccc', marginBottom: 24, whiteSpace: 'pre-wrap', lineHeight: 1.8 }}
+            >
               {selectedCard.content}
             </div>
 
             {selectedCard.annotation && (
               <>
                 <h4 style={{ color: '#fff', marginBottom: 8 }}>批注</h4>
-                <div style={{ color: '#ccc', marginBottom: 24, whiteSpace: 'pre-wrap', lineHeight: 1.8, padding: '8px 12px', borderLeft: '3px solid #1677ff', background: '#1a1a2e' }}>
+                <div
+                  style={{
+                    color: '#ccc',
+                    marginBottom: 24,
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.8,
+                    padding: '8px 12px',
+                    borderLeft: '3px solid #1677ff',
+                    background: '#1a1a2e',
+                  }}
+                >
                   {selectedCard.annotation}
                 </div>
               </>
@@ -237,7 +309,18 @@ export default function KnowledgeCardsPage() {
             {selectedCard.source_passage && (
               <>
                 <h4 style={{ color: '#fff', marginBottom: 8 }}>原文引用</h4>
-                <div style={{ color: '#999', marginBottom: 24, whiteSpace: 'pre-wrap', lineHeight: 1.8, fontStyle: 'italic', padding: '8px 12px', borderLeft: '3px solid #303030', background: '#111' }}>
+                <div
+                  style={{
+                    color: '#999',
+                    marginBottom: 24,
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.8,
+                    fontStyle: 'italic',
+                    padding: '8px 12px',
+                    borderLeft: '3px solid #303030',
+                    background: '#111',
+                  }}
+                >
                   {selectedCard.source_passage}
                 </div>
               </>
@@ -260,14 +343,18 @@ export default function KnowledgeCardsPage() {
             </div>
 
             <div style={{ marginTop: 24, display: 'flex', gap: 8 }}>
-              <Button icon={<LinkOutlined />} disabled>关联卡片</Button>
+              <Button icon={<LinkOutlined />} disabled>
+                关联卡片
+              </Button>
               <Popconfirm
                 title="确定删除该卡片?"
                 onConfirm={() => handleDelete(selectedCard.id)}
                 okText="删除"
                 cancelText="取消"
               >
-                <Button danger icon={<DeleteOutlined />}>删除</Button>
+                <Button danger icon={<DeleteOutlined />}>
+                  删除
+                </Button>
               </Popconfirm>
             </div>
           </div>
@@ -285,11 +372,7 @@ export default function KnowledgeCardsPage() {
         cancelText="取消"
       >
         <Form form={createForm} layout="vertical" initialValues={{ card_type: 'manual' }}>
-          <Form.Item
-            name="title"
-            label="标题"
-            rules={[{ required: true, message: '请输入标题' }]}
-          >
+          <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>
             <Input placeholder="输入卡片标题" />
           </Form.Item>
           <Form.Item

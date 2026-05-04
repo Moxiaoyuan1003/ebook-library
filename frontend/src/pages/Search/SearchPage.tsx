@@ -11,7 +11,17 @@ const { Text, Paragraph } = Typography;
 
 export default function SearchPage() {
   const navigate = useNavigate();
-  const { books, total, page, pageSize, loading, searchQuery, fetchBooks, setSearchQuery, setPage } = useBookStore();
+  const {
+    books,
+    total,
+    page,
+    pageSize,
+    loading,
+    searchQuery,
+    fetchBooks,
+    setSearchQuery,
+    setPage,
+  } = useBookStore();
 
   const [crossQuery, setCrossQuery] = useState('');
   const [crossLoading, setCrossLoading] = useState(false);
@@ -51,25 +61,43 @@ export default function SearchPage() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onSearch={fetchBooks}
-          enterButton={<><SearchOutlined /> 搜索</>}
+          enterButton={
+            <>
+              <SearchOutlined /> 搜索
+            </>
+          }
           size="large"
           style={{ maxWidth: 500 }}
         />
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 48 }}><Spin size="large" /></div>
+        <div style={{ textAlign: 'center', padding: 48 }}>
+          <Spin size="large" />
+        </div>
       ) : books.length === 0 ? (
         <Empty description="暂无搜索结果" />
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+              gap: 16,
+            }}
+          >
             {books.map((book) => (
               <BookCard key={book.id} book={book} onClick={handleBookClick} />
             ))}
           </div>
           <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <Pagination current={page} total={total} pageSize={pageSize} onChange={setPage} showSizeChanger={false} />
+            <Pagination
+              current={page}
+              total={total}
+              pageSize={pageSize}
+              onChange={setPage}
+              showSizeChanger={false}
+            />
           </div>
         </>
       )}
@@ -84,7 +112,11 @@ export default function SearchPage() {
           value={crossQuery}
           onChange={(e) => setCrossQuery(e.target.value)}
           onSearch={handleCrossSearch}
-          enterButton={<><SearchOutlined /> 跨书查询</>}
+          enterButton={
+            <>
+              <SearchOutlined /> 跨书查询
+            </>
+          }
           size="large"
           loading={crossLoading}
           style={{ maxWidth: 600 }}
@@ -112,7 +144,9 @@ export default function SearchPage() {
 
           {crossSources.length > 0 && (
             <>
-              <h3 style={{ color: '#d9d9d9', marginBottom: 16 }}>来源 ({crossSources.length} 本书)</h3>
+              <h3 style={{ color: '#d9d9d9', marginBottom: 16 }}>
+                来源 ({crossSources.length} 本书)
+              </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {crossSources.map((source) => (
                   <Card
@@ -132,7 +166,15 @@ export default function SearchPage() {
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {source.passages.map((passage, idx) => (
-                        <div key={idx} style={{ padding: '8px 12px', background: '#111', borderRadius: 6, border: '1px solid #262626' }}>
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '8px 12px',
+                            background: '#111',
+                            borderRadius: 6,
+                            border: '1px solid #262626',
+                          }}
+                        >
                           <div style={{ marginBottom: 4 }}>
                             {passage.page_number !== null && (
                               <Tag style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px' }}>

@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import axios from 'axios';
 import { readingSessionApi } from './readingSessionApi';
 
 const { mockGet, mockPost, mockPut, mockDelete } = vi.hoisted(() => ({
@@ -51,7 +50,16 @@ describe('readingSessionApi', () => {
   });
 
   it('listSessions sends GET to /reading-sessions/:bookId', async () => {
-    const sessions = [{ id: 'sess-1', book_id: 'book-123', messages: [], context_passages: [], created_at: '', updated_at: '' }];
+    const sessions = [
+      {
+        id: 'sess-1',
+        book_id: 'book-123',
+        messages: [],
+        context_passages: [],
+        created_at: '',
+        updated_at: '',
+      },
+    ];
     mockGet.mockResolvedValue({ data: sessions });
 
     const result = await readingSessionApi.listSessions('book-123');

@@ -11,7 +11,12 @@ interface ReadingChatPanelProps {
   onClose: () => void;
 }
 
-export default function ReadingChatPanel({ visible, bookId, selectedText, onClose }: ReadingChatPanelProps) {
+export default function ReadingChatPanel({
+  visible,
+  bookId,
+  selectedText,
+  onClose,
+}: ReadingChatPanelProps) {
   const [messages, setMessages] = useState<ReadingMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
@@ -158,7 +163,9 @@ export default function ReadingChatPanel({ visible, bookId, selectedText, onClos
         {loading && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
             <Spin size="small" />
-            <Typography.Text style={{ color: '#888', fontSize: 12 }}>AI 正在思考...</Typography.Text>
+            <Typography.Text style={{ color: '#888', fontSize: 12 }}>
+              AI 正在思考...
+            </Typography.Text>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -173,7 +180,10 @@ export default function ReadingChatPanel({ visible, bookId, selectedText, onClos
             background: '#1a1a1a',
           }}
         >
-          <Typography.Text style={{ color: '#888', fontSize: 11 }} ellipsis={{ tooltip: selectedText }}>
+          <Typography.Text
+            style={{ color: '#888', fontSize: 11 }}
+            ellipsis={{ tooltip: selectedText }}
+          >
             上下文: {selectedText.length > 60 ? selectedText.slice(0, 60) + '...' : selectedText}
           </Typography.Text>
         </div>

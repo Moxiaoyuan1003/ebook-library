@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import axios from 'axios';
 import { exportApi } from './exportApi';
 import type { ExportRequest } from './exportApi';
 

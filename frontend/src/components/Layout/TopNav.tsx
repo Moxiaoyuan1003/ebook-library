@@ -14,7 +14,16 @@ export default function TopNav() {
   const location = useLocation();
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', height: 48, padding: '0 24px', background: '#141414', borderBottom: '1px solid #303030' }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        height: 48,
+        padding: '0 24px',
+        background: '#141414',
+        borderBottom: '1px solid #303030',
+      }}
+    >
       <div style={{ fontSize: 16, fontWeight: 'bold', marginRight: 48, color: '#1677ff' }}>
         📚 个人图书管理器
       </div>

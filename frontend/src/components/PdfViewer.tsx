@@ -8,7 +8,7 @@ import type { TocItem } from '../types/reader';
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const PDF_STANDARD_WIDTH = 612; // points
-const CONTAINER_PADDING = 48;   // 24px * 2 sides
+const CONTAINER_PADDING = 48; // 24px * 2 sides
 const ZOOM_STEP = 0.2;
 const ZOOM_MAX = 2.0;
 const ZOOM_MIN = 0.5;
@@ -19,13 +19,16 @@ const resolveOutline = async (pdf: any, outline: any[]): Promise<TocItem[]> => {
     let pageNumber = 0;
     try {
       if (item.dest) {
-        const dest = typeof item.dest === 'string' ? await pdf.getDestination(item.dest) : item.dest;
+        const dest =
+          typeof item.dest === 'string' ? await pdf.getDestination(item.dest) : item.dest;
         if (dest) {
           const pageIndex = await pdf.getPageIndex(dest[0]);
           pageNumber = pageIndex + 1;
         }
       }
-    } catch {}
+    } catch {
+      // ignore outline resolution errors
+    }
     items.push({
       title: item.title,
       pageNumber,
@@ -54,132 +57,158 @@ interface PdfViewerProps {
   initialPage?: number;
 }
 
-const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ filePath, onPageChange, onTocLoad, onTextSelect, onZoomChange, initialPage = 1 }, ref) => {
-  const [numPages, setNumPages] = useState(0);
-  const [currentPage, setCurrentPage] = useState(initialPage);
-  const [scale, setScale] = useState(1.0);
-  const containerRef = useRef<HTMLDivElement>(null);
+const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(
+  ({ filePath, onPageChange, onTocLoad, onTextSelect, onZoomChange, initialPage = 1 }, ref) => {
+    const [numPages, setNumPages] = useState(0);
+    const [currentPage, setCurrentPage] = useState(initialPage);
+    const [scale, setScale] = useState(1.0);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-  const onDocumentLoadSuccess = useCallback(async (pdf: any) => {
-    setNumPages(pdf.numPages);
-    onPageChange?.(currentPage, pdf.numPages);
+    const onDocumentLoadSuccess = useCallback(
+      async (pdf: any) => {
+        setNumPages(pdf.numPages);
+        onPageChange?.(currentPage, pdf.numPages);
 
-    // Extract outline (TOC)
-    try {
-      const outline = await pdf.getOutline();
-      if (outline && outline.length > 0 && onTocLoad) {
-        const toc = await resolveOutline(pdf, outline);
-        onTocLoad(toc);
+        // Extract outline (TOC)
+        try {
+          const outline = await pdf.getOutline();
+          if (outline && outline.length > 0 && onTocLoad) {
+            const toc = await resolveOutline(pdf, outline);
+            onTocLoad(toc);
+          }
+        } catch {
+          // No outline available
+        }
+      },
+      [onPageChange, onTocLoad, currentPage],
+    );
+
+    const goToPage = useCallback(
+      (page: number) => {
+        if (page >= 1 && page <= numPages) {
+          setCurrentPage(page);
+          onPageChange?.(page, numPages);
+        }
+      },
+      [numPages, onPageChange],
+    );
+
+    const handleZoomIn = useCallback(() => {
+      setScale((s) => {
+        const newScale = Math.min(s + ZOOM_STEP, ZOOM_MAX);
+        onZoomChange?.(newScale);
+        return newScale;
+      });
+    }, [onZoomChange]);
+
+    const handleZoomOut = useCallback(() => {
+      setScale((s) => {
+        const newScale = Math.max(s - ZOOM_STEP, ZOOM_MIN);
+        onZoomChange?.(newScale);
+        return newScale;
+      });
+    }, [onZoomChange]);
+    const handleFitWidth = useCallback(() => {
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.clientWidth - CONTAINER_PADDING;
+        const newScale = containerWidth / PDF_STANDARD_WIDTH;
+        setScale(newScale);
+        onZoomChange?.(newScale);
       }
-    } catch {
-      // No outline available
-    }
-  }, [onPageChange, onTocLoad, currentPage]);
+    }, [onZoomChange]);
 
-  const goToPage = useCallback((page: number) => {
-    if (page >= 1 && page <= numPages) {
-      setCurrentPage(page);
-      onPageChange?.(page, numPages);
-    }
-  }, [numPages, onPageChange]);
+    // Expose methods via ref
+    useImperativeHandle(
+      ref,
+      () => ({
+        goToPage,
+        handleZoomIn,
+        handleZoomOut,
+        handleFitWidth,
+        getScale: () => scale,
+        getCurrentPage: () => currentPage,
+        getNumPages: () => numPages,
+      }),
+      [goToPage, handleZoomIn, handleZoomOut, handleFitWidth, scale, currentPage, numPages],
+    );
 
-  const handleZoomIn = useCallback(() => {
-    setScale((s) => {
-      const newScale = Math.min(s + ZOOM_STEP, ZOOM_MAX);
-      onZoomChange?.(newScale);
-      return newScale;
-    });
-  }, [onZoomChange]);
+    // Keyboard navigation — scoped to container
+    useEffect(() => {
+      const container = containerRef.current;
+      if (!container) return;
 
-  const handleZoomOut = useCallback(() => {
-    setScale((s) => {
-      const newScale = Math.max(s - ZOOM_STEP, ZOOM_MIN);
-      onZoomChange?.(newScale);
-      return newScale;
-    });
-  }, [onZoomChange]);
-  const handleFitWidth = useCallback(() => {
-    if (containerRef.current) {
-      const containerWidth = containerRef.current.clientWidth - CONTAINER_PADDING;
-      const newScale = containerWidth / PDF_STANDARD_WIDTH;
-      setScale(newScale);
-      onZoomChange?.(newScale);
-    }
-  }, [onZoomChange]);
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+          e.preventDefault();
+          goToPage(currentPage - 1);
+        } else if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+          e.preventDefault();
+          goToPage(currentPage + 1);
+        } else if (e.ctrlKey && e.key === '=') {
+          e.preventDefault();
+          handleZoomIn();
+        } else if (e.ctrlKey && e.key === '-') {
+          e.preventDefault();
+          handleZoomOut();
+        }
+      };
+      container.addEventListener('keydown', handleKeyDown);
+      return () => container.removeEventListener('keydown', handleKeyDown);
+    }, [currentPage, numPages, goToPage, handleZoomIn, handleZoomOut]);
 
-  // Expose methods via ref
-  useImperativeHandle(ref, () => ({
-    goToPage,
-    handleZoomIn,
-    handleZoomOut,
-    handleFitWidth,
-    getScale: () => scale,
-    getCurrentPage: () => currentPage,
-    getNumPages: () => numPages,
-  }), [goToPage, handleZoomIn, handleZoomOut, handleFitWidth, scale, currentPage, numPages]);
+    // Text selection handler
+    useEffect(() => {
+      const container = containerRef.current;
+      if (!container || !onTextSelect) return;
 
-  // Keyboard navigation — scoped to container
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+      const handleMouseUp = () => {
+        const selection = window.getSelection();
+        const text = selection?.toString().trim();
+        if (text && selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+          onTextSelect(text, rect);
+        }
+      };
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-        e.preventDefault();
-        goToPage(currentPage - 1);
-      } else if (e.key === 'ArrowRight' || e.key === 'PageDown') {
-        e.preventDefault();
-        goToPage(currentPage + 1);
-      } else if (e.ctrlKey && e.key === '=') {
-        e.preventDefault();
-        handleZoomIn();
-      } else if (e.ctrlKey && e.key === '-') {
-        e.preventDefault();
-        handleZoomOut();
-      }
-    };
-    container.addEventListener('keydown', handleKeyDown);
-    return () => container.removeEventListener('keydown', handleKeyDown);
-  }, [currentPage, numPages, goToPage, handleZoomIn, handleZoomOut]);
+      container.addEventListener('mouseup', handleMouseUp);
+      return () => container.removeEventListener('mouseup', handleMouseUp);
+    }, [onTextSelect]);
 
-  // Text selection handler
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !onTextSelect) return;
+    const fileUrl = filePath.startsWith('http')
+      ? filePath
+      : `/api/books/file?file_path=${encodeURIComponent(filePath)}`;
 
-    const handleMouseUp = () => {
-      const selection = window.getSelection();
-      const text = selection?.toString().trim();
-      if (text && selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        onTextSelect(text, rect);
-      }
-    };
-
-    container.addEventListener('mouseup', handleMouseUp);
-    return () => container.removeEventListener('mouseup', handleMouseUp);
-  }, [onTextSelect]);
-
-  const fileUrl = filePath.startsWith('http') ? filePath : `/api/books/file?file_path=${encodeURIComponent(filePath)}`;
-
-  return (
-    <div
-      ref={containerRef}
-      tabIndex={0}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'auto', height: '100%', padding: 24, outline: 'none' }}
-    >
-      <Document file={fileUrl} onLoadSuccess={onDocumentLoadSuccess} onLoadError={() => console.error('PDF load error')}>
-        <Page
-          pageNumber={currentPage}
-          scale={scale}
-          renderTextLayer={true}
-          renderAnnotationLayer={true}
-        />
-      </Document>
-    </div>
-  );
-});
+    return (
+      <div
+        ref={containerRef}
+        tabIndex={0}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          overflow: 'auto',
+          height: '100%',
+          padding: 24,
+          outline: 'none',
+        }}
+      >
+        <Document
+          file={fileUrl}
+          onLoadSuccess={onDocumentLoadSuccess}
+          onLoadError={() => console.error('PDF load error')}
+        >
+          <Page
+            pageNumber={currentPage}
+            scale={scale}
+            renderTextLayer={true}
+            renderAnnotationLayer={true}
+          />
+        </Document>
+      </div>
+    );
+  },
+);
 
 PdfViewer.displayName = 'PdfViewer';
 

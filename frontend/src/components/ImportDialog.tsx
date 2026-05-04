@@ -58,9 +58,15 @@ export default function ImportDialog({ open, onClose }: ImportDialogProps) {
       open={open}
       onCancel={onClose}
       footer={[
-        <Button key="cancel" onClick={onClose}>取消</Button>,
-        <Button key="directory" icon={<FolderOpenOutlined />} onClick={handleDirectoryImport}>选择文件夹</Button>,
-        <Button key="import" type="primary" loading={importing} onClick={handleImport}>开始导入</Button>,
+        <Button key="cancel" onClick={onClose}>
+          取消
+        </Button>,
+        <Button key="directory" icon={<FolderOpenOutlined />} onClick={handleDirectoryImport}>
+          选择文件夹
+        </Button>,
+        <Button key="import" type="primary" loading={importing} onClick={handleImport}>
+          开始导入
+        </Button>,
       ]}
       width={600}
     >

@@ -35,21 +35,20 @@ export default function UpdateChecker() {
 
   return (
     <div style={{ maxWidth: 600 }}>
-      <Title level={4} style={{ color: '#fff', marginBottom: 24 }}>软件更新</Title>
+      <Title level={4} style={{ color: '#fff', marginBottom: 24 }}>
+        软件更新
+      </Title>
 
       <Card style={{ background: '#1a1a2e', borderColor: '#303030', marginBottom: 24 }}>
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <div>
             <Text style={{ color: '#ccc' }}>当前版本：</Text>
-            <Tag color="blue" style={{ marginLeft: 8 }}>{CURRENT_VERSION}</Tag>
+            <Tag color="blue" style={{ marginLeft: 8 }}>
+              {CURRENT_VERSION}
+            </Tag>
           </div>
 
-          <Button
-            type="primary"
-            icon={<SyncOutlined />}
-            onClick={checkUpdate}
-            loading={loading}
-          >
+          <Button type="primary" icon={<SyncOutlined />} onClick={checkUpdate} loading={loading}>
             检查更新
           </Button>
         </Space>
@@ -103,9 +102,7 @@ export default function UpdateChecker() {
 
             {updateInfo.release_notes && (
               <div>
-                <Text style={{ color: '#ccc', display: 'block', marginBottom: 8 }}>
-                  更新内容：
-                </Text>
+                <Text style={{ color: '#ccc', display: 'block', marginBottom: 8 }}>更新内容：</Text>
                 <Paragraph
                   style={{
                     color: '#aaa',

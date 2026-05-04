@@ -22,9 +22,21 @@ export default function BookCard({ book, onClick }: BookCardProps) {
       onClick={() => onClick(book)}
       style={{ width: '100%' }}
       cover={
-        <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1a1a2e' }}>
+        <div
+          style={{
+            height: 180,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#1a1a2e',
+          }}
+        >
           {book.cover_url ? (
-            <img src={book.cover_url} alt={book.title} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+            <img
+              src={book.cover_url}
+              alt={book.title}
+              style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
+            />
           ) : (
             <BookOutlined style={{ fontSize: 48, color: '#444' }} />
           )}
@@ -35,9 +47,14 @@ export default function BookCard({ book, onClick }: BookCardProps) {
         title={<span style={{ fontSize: 13 }}>{book.title}</span>}
         description={
           <div>
-            <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>{book.author || '未知作者'}</div>
+            <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>
+              {book.author || '未知作者'}
+            </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              <Tag color={formatColors[book.file_format] || '#888'} style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px' }}>
+              <Tag
+                color={formatColors[book.file_format] || '#888'}
+                style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px' }}
+              >
                 {book.file_format.toUpperCase()}
               </Tag>
               {book.rating && <Rate disabled value={book.rating} style={{ fontSize: 10 }} />}

@@ -22,10 +22,12 @@ export interface ReadingChatResponse {
 }
 
 export const readingSessionApi = {
-  chat: (data: { book_id: string; message: string; context_passages?: any[]; session_id?: string }) =>
-    api.post<ReadingChatResponse>('/reading-chat', data),
-  listSessions: (bookId: string) =>
-    api.get<ReadingSession[]>(`/reading-sessions/${bookId}`),
-  deleteSession: (sessionId: string) =>
-    api.delete(`/reading-sessions/${sessionId}`),
+  chat: (data: {
+    book_id: string;
+    message: string;
+    context_passages?: any[];
+    session_id?: string;
+  }) => api.post<ReadingChatResponse>('/reading-chat', data),
+  listSessions: (bookId: string) => api.get<ReadingSession[]>(`/reading-sessions/${bookId}`),
+  deleteSession: (sessionId: string) => api.delete(`/reading-sessions/${sessionId}`),
 };

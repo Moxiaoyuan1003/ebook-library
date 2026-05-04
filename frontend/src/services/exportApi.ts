@@ -14,6 +14,5 @@ export interface ExportRequest {
 }
 
 export const exportApi = {
-  export: (data: ExportRequest) =>
-    api.post('/', data, { responseType: 'blob' }),
+  export: (data: ExportRequest) => api.post('/', data, { responseType: 'blob' }),
 };
