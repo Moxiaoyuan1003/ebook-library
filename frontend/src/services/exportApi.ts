@@ -1,6 +1,7 @@
 import axios from 'axios';
+import API_BASE from './apiConfig';
 
-const api = axios.create({ baseURL: '/api/export' });
+const api = axios.create({ baseURL: `${API_BASE}/api/export` });
 
 export interface ExportRequest {
   data_type: 'cards' | 'annotations' | 'books';

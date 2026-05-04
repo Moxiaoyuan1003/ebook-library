@@ -1,6 +1,7 @@
 import axios from 'axios';
+import API_BASE from './apiConfig';
 
-const api = axios.create({ baseURL: '/api/knowledge-cards' });
+const api = axios.create({ baseURL: `${API_BASE}/api/knowledge-cards` });
 
 export interface KnowledgeCard {
   id: string;

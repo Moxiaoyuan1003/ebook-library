@@ -1,6 +1,7 @@
 import axios from 'axios';
+import API_BASE from './apiConfig';
 
-const api = axios.create({ baseURL: '/api' });
+const api = axios.create({ baseURL: `${API_BASE}/api` });
 
 export interface Book {
   id: string;

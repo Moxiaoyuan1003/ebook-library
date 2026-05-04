@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button, Card, Spin, Typography, Space, Tag, Alert } from 'antd';
 import { SyncOutlined, CheckCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import API_BASE from '../services/apiConfig';
 
 const { Title, Text, Paragraph, Link } = Typography;
 
@@ -24,7 +25,7 @@ export default function UpdateChecker() {
     setError(null);
     setUpdateInfo(null);
     try {
-      const response = await axios.get<UpdateInfo>('/api/system/update-check');
+      const response = await axios.get<UpdateInfo>(`${API_BASE}/api/system/update-check`);
       setUpdateInfo(response.data);
     } catch {
       setError('检查更新失败，请检查网络连接后重试');

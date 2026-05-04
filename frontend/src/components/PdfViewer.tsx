@@ -4,6 +4,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import type { TocItem } from '../types/reader';
+import API_BASE from '../services/apiConfig';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -177,7 +178,7 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(
 
     const fileUrl = filePath.startsWith('http')
       ? filePath
-      : `/api/books/file?file_path=${encodeURIComponent(filePath)}`;
+      : `${API_BASE}/api/books/file?file_path=${encodeURIComponent(filePath)}`;
 
     return (
       <div

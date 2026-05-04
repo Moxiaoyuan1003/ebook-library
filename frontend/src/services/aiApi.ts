@@ -1,7 +1,8 @@
 import axios from 'axios';
+import API_BASE from './apiConfig';
 
-const api = axios.create({ baseURL: '/api/ai' });
-const searchApi = axios.create({ baseURL: '/api/search' });
+const api = axios.create({ baseURL: `${API_BASE}/api/ai` });
+const searchApi = axios.create({ baseURL: `${API_BASE}/api/search` });
 
 export interface AiConfig {
   provider: string;

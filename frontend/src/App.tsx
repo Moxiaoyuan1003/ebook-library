@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import AppLayout from './components/Layout/AppLayout';
 import LibraryPage from './pages/Library/LibraryPage';
 import SearchPage from './pages/Search/SearchPage';
@@ -11,7 +11,7 @@ import UpdateModal from './components/UpdateModal';
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<AppLayout />}>
           <Route index element={<LibraryPage />} />
@@ -24,7 +24,7 @@ function App() {
         </Route>
       </Routes>
       <UpdateModal />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

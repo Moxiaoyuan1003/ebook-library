@@ -1,6 +1,7 @@
 import axios from 'axios';
+import API_BASE from './apiConfig';
 
-const api = axios.create({ baseURL: '/api/annotations' });
+const api = axios.create({ baseURL: `${API_BASE}/api/annotations` });
 
 export interface Annotation {
   id: string;

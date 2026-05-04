@@ -1,5 +1,7 @@
 import axios from 'axios';
-const api = axios.create({ baseURL: '/api/ai' });
+import API_BASE from './apiConfig';
+
+const api = axios.create({ baseURL: `${API_BASE}/api/ai` });
 
 export interface ReadingMessage {
   role: 'user' | 'assistant';

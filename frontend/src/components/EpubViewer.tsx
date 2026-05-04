@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import ePub from 'epubjs';
 import type { TocItem } from '../types/reader';
+import API_BASE from '../services/apiConfig';
 
 export interface EpubViewerRef {
   goNext: () => void;
@@ -47,7 +48,7 @@ const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(
 
     const fileUrl = filePath.startsWith('http')
       ? filePath
-      : `/api/books/file?file_path=${encodeURIComponent(filePath)}`;
+      : `${API_BASE}/api/books/file?file_path=${encodeURIComponent(filePath)}`;
 
     useEffect(() => {
       if (!viewerRef.current) return;
