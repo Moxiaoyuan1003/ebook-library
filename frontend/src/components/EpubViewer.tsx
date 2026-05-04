@@ -1,7 +1,13 @@
 // frontend/src/components/EpubViewer.tsx
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import ePub from 'epubjs';
 import type { TocItem } from '../types/reader';
+
+export interface EpubViewerRef {
+  goNext: () => void;
+  goPrev: () => void;
+  goToHref: (href: string) => void;
+}
 
 interface EpubViewerProps {
   filePath: string;
@@ -13,11 +19,19 @@ interface EpubViewerProps {
   darkMode?: boolean;
 }
 
-export default function EpubViewer({ filePath, onLocationChange, onTocLoad, onTextSelect, initialCfi, fontSize = 16, darkMode = true }: EpubViewerProps) {
+const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(({ filePath, onLocationChange, onTocLoad, onTextSelect, initialCfi, fontSize = 16, darkMode = true }, ref) => {
   const viewerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<any>(null);
   const renditionRef = useRef<any>(null);
   const [, setReady] = useState(false);
+
+  // Ref-wrap callbacks to avoid stale closures in rendition event handlers
+  const onLocationChangeRef = useRef(onLocationChange);
+  onLocationChangeRef.current = onLocationChange;
+  const onTocLoadRef = useRef(onTocLoad);
+  onTocLoadRef.current = onTocLoad;
+  const onTextSelectRef = useRef(onTextSelect);
+  onTextSelectRef.current = onTextSelect;
 
   const fileUrl = filePath.startsWith('http') ? filePath : `/api/books/file?file_path=${encodeURIComponent(filePath)}`;
 
@@ -55,19 +69,17 @@ export default function EpubViewer({ filePath, onLocationChange, onTocLoad, onTe
     rendition.on('relocated', (location: any) => {
       if (location?.start) {
         const progress = book.locations?.percentageFromCfi(location.start.cfi) || 0;
-        onLocationChange?.(location.start.cfi, Math.round(progress * 100));
+        onLocationChangeRef.current?.(location.start.cfi, Math.round(progress * 100));
       }
     });
 
     // Track text selection
-    if (onTextSelect) {
-      rendition.on('selected', (cfiRange: string, contents: any) => {
-        const text = contents.window.getSelection().toString();
-        if (text) {
-          onTextSelect(text, cfiRange);
-        }
-      });
-    }
+    rendition.on('selected', (cfiRange: string, contents: any) => {
+      const text = contents.window.getSelection().toString();
+      if (text) {
+        onTextSelectRef.current?.(text, cfiRange);
+      }
+    });
 
     // Load TOC
     book.ready.then(() => {
@@ -78,7 +90,7 @@ export default function EpubViewer({ filePath, onLocationChange, onTocLoad, onTe
           href: item.href,
           pageNumber: i + 1,
         }));
-        onTocLoad?.(toc);
+        onTocLoadRef.current?.(toc);
       }
       // Generate locations for progress tracking
       book.locations.generate(1024).then(() => setReady(true)).catch((err: unknown) => {
@@ -112,6 +124,13 @@ export default function EpubViewer({ filePath, onLocationChange, onTocLoad, onTe
   const goPrev = useCallback(() => renditionRef.current?.prev(), []);
   const goToHref = useCallback((href: string) => renditionRef.current?.display(href), []);
 
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    goNext,
+    goPrev,
+    goToHref,
+  }), [goNext, goPrev, goToHref]);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -122,12 +141,11 @@ export default function EpubViewer({ filePath, onLocationChange, onTocLoad, onTe
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goNext, goPrev]);
 
-  // Expose navigation
-  useEffect(() => {
-    (window as any).__epubViewer = { goNext, goPrev, goToHref };
-  }, [goNext, goPrev, goToHref]);
-
   return (
     <div ref={viewerRef} style={{ width: '100%', height: '100%' }} />
   );
-}
+});
+
+EpubViewer.displayName = 'EpubViewer';
+
+export default EpubViewer;
