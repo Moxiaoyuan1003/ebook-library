@@ -1,12 +1,7 @@
 // frontend/src/components/EpubViewer.tsx
 import { useEffect, useRef, useState, useCallback } from 'react';
 import ePub from 'epubjs';
-
-interface TocItem {
-  title: string;
-  href: string;
-  pageNumber: number;
-}
+import type { TocItem } from '../types/reader';
 
 interface EpubViewerProps {
   filePath: string;

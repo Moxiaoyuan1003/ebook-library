@@ -3,14 +3,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import type { TocItem } from '../types/reader';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-
-interface TocItem {
-  title: string;
-  pageNumber: number;
-  items?: TocItem[];
-}
 
 interface PdfViewerProps {
   filePath: string;

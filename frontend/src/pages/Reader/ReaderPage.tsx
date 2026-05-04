@@ -11,13 +11,7 @@ import EpubViewer from '../../components/EpubViewer';
 import TextSelectionMenu from '../../components/TextSelectionMenu';
 import AnnotationSidebar from '../../components/AnnotationSidebar';
 import ReadingChatPanel from '../../components/ReadingChatPanel';
-
-interface TocItem {
-  title: string;
-  pageNumber: number;
-  href?: string;
-  items?: TocItem[];
-}
+import type { TocItem } from '../../types/reader';
 
 export default function ReaderPage() {
   const { bookId } = useParams<{ bookId: string }>();
