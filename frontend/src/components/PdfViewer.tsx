@@ -16,10 +16,11 @@ interface PdfViewerProps {
   filePath: string;
   onPageChange?: (page: number, total: number) => void;
   onTocLoad?: (toc: TocItem[]) => void;
+  onTextSelect?: (text: string, rect: DOMRect) => void;
   initialPage?: number;
 }
 
-export default function PdfViewer({ filePath, onPageChange, onTocLoad, initialPage = 1 }: PdfViewerProps) {
+export default function PdfViewer({ filePath, onPageChange, onTocLoad, onTextSelect, initialPage = 1 }: PdfViewerProps) {
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [scale, setScale] = useState(1.0);
@@ -99,6 +100,25 @@ export default function PdfViewer({ filePath, onPageChange, onTocLoad, initialPa
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentPage, numPages]);
+
+  // Text selection handler
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !onTextSelect) return;
+
+    const handleMouseUp = () => {
+      const selection = window.getSelection();
+      const text = selection?.toString().trim();
+      if (text && selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        onTextSelect(text, rect);
+      }
+    };
+
+    container.addEventListener('mouseup', handleMouseUp);
+    return () => container.removeEventListener('mouseup', handleMouseUp);
+  }, [onTextSelect]);
 
   // Expose navigation methods via ref-like approach
   useEffect(() => {

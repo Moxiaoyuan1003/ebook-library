@@ -12,12 +12,13 @@ interface EpubViewerProps {
   filePath: string;
   onLocationChange?: (cfi: string, progress: number) => void;
   onTocLoad?: (toc: TocItem[]) => void;
+  onTextSelect?: (text: string, cfiRange: string) => void;
   initialCfi?: string;
   fontSize?: number;
   darkMode?: boolean;
 }
 
-export default function EpubViewer({ filePath, onLocationChange, onTocLoad, initialCfi, fontSize = 16, darkMode = true }: EpubViewerProps) {
+export default function EpubViewer({ filePath, onLocationChange, onTocLoad, onTextSelect, initialCfi, fontSize = 16, darkMode = true }: EpubViewerProps) {
   const viewerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<any>(null);
   const renditionRef = useRef<any>(null);
@@ -62,6 +63,16 @@ export default function EpubViewer({ filePath, onLocationChange, onTocLoad, init
         onLocationChange?.(location.start.cfi, Math.round(progress * 100));
       }
     });
+
+    // Track text selection
+    if (onTextSelect) {
+      rendition.on('selected', (cfiRange: string, contents: any) => {
+        const text = contents.window.getSelection().toString();
+        if (text) {
+          onTextSelect(text, cfiRange);
+        }
+      });
+    }
 
     // Load TOC
     book.ready.then(() => {
