@@ -7,6 +7,7 @@ import SettingsPage from './pages/Settings/SettingsPage';
 import ReaderPage from './pages/Reader/ReaderPage';
 import KnowledgeCardsPage from './pages/KnowledgeCards/KnowledgeCardsPage';
 import ExportPage from './pages/Export/ExportPage';
+import UpdateModal from './components/UpdateModal';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="export" element={<ExportPage />} />
         </Route>
       </Routes>
+      <UpdateModal />
     </BrowserRouter>
   );
 }

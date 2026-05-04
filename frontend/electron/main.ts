@@ -3,6 +3,7 @@ import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import http from 'http';
+import { setupAutoUpdater } from './updater';
 
 let mainWindow: BrowserWindow | null = null;
 let backendProcess: ChildProcess | null = null;
@@ -87,6 +88,10 @@ function createWindow() {
 
   mainWindow.on('ready-to-show', () => mainWindow?.show());
   mainWindow.on('closed', () => { mainWindow = null; });
+
+  if (app.isPackaged) {
+    setupAutoUpdater(mainWindow);
+  }
 }
 
 // ── IPC Handlers ──
