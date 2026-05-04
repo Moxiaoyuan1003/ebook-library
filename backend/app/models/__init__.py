@@ -6,6 +6,7 @@ from app.models.annotation import Annotation
 from app.models.knowledge_card import KnowledgeCard
 from app.models.card_link import CardLink
 from app.models.reading_progress import ReadingProgress
+from app.models.reading_session import ReadingSession
 
 __all__ = [
     "Book",
@@ -18,4 +19,5 @@ __all__ = [
     "KnowledgeCard",
     "CardLink",
     "ReadingProgress",
+    "ReadingSession",
 ]
