@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models import Book
+from app.services.enrichment import MetadataEnrichmentService
 from app.services.parser.registry import ParserRegistry
 from app.schemas.book import BookCreate
 
@@ -62,6 +63,14 @@ class ImportService:
             book.cover_url = str(cover_path)
             self.db.commit()
 
+        return book
+
+    async def import_file_enriched(self, file_path: str) -> Optional[Book]:
+        """Import a single file and enrich metadata from external APIs."""
+        book = self.import_file(file_path)
+        if book:
+            enricher = MetadataEnrichmentService()
+            await enricher.enrich(self.db, book)
         return book
 
     async def import_batch(self, file_paths: list[str]) -> list[Book]:

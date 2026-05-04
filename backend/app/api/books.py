@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import Optional
 from uuid import UUID
+from pathlib import Path
 
 from app.core.database import get_db
+from app.models import ReadingProgress
 from app.schemas.book import BookCreate, BookUpdate, BookResponse, BookListResponse
 from app.services.book_service import BookService
 from app.services.import_service import ImportService
@@ -34,6 +37,15 @@ def list_books(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get("/file")
+def serve_book_file(file_path: str):
+    """Serve a book file for reading (PDF/EPUB readers)."""
+    p = Path(file_path)
+    if not p.exists() or not p.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(p)
 
 
 @router.get("/{book_id}", response_model=BookResponse)
@@ -85,3 +97,39 @@ def import_directory(directory: str, db: Session = Depends(get_db)):
     if not files:
         raise HTTPException(status_code=400, detail="No supported files found")
     return {"files_found": len(files), "files": files}
+
+
+@router.get("/{book_id}/progress")
+def get_reading_progress(book_id: UUID, db: Session = Depends(get_db)):
+    """Get reading progress for a book."""
+    progress = db.query(ReadingProgress).filter(ReadingProgress.book_id == book_id).first()
+    if not progress:
+        return {"current_page": 0, "current_cfi": None, "progress_percent": 0.0}
+    return {
+        "current_page": progress.current_page,
+        "current_cfi": progress.current_cfi,
+        "progress_percent": progress.progress_percent,
+    }
+
+
+@router.put("/{book_id}/progress")
+def update_reading_progress(
+    book_id: UUID,
+    current_page: Optional[int] = None,
+    current_cfi: Optional[str] = None,
+    progress_percent: Optional[float] = None,
+    db: Session = Depends(get_db),
+):
+    """Update reading progress for a book."""
+    progress = db.query(ReadingProgress).filter(ReadingProgress.book_id == book_id).first()
+    if not progress:
+        progress = ReadingProgress(book_id=book_id)
+        db.add(progress)
+    if current_page is not None:
+        progress.current_page = current_page
+    if current_cfi is not None:
+        progress.current_cfi = current_cfi
+    if progress_percent is not None:
+        progress.progress_percent = progress_percent
+    db.commit()
+    return {"status": "ok"}
