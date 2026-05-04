@@ -22,10 +22,11 @@ interface PdfViewerProps {
   onPageChange?: (page: number, total: number) => void;
   onTocLoad?: (toc: TocItem[]) => void;
   onTextSelect?: (text: string, rect: DOMRect) => void;
+  onZoomChange?: (scale: number) => void;
   initialPage?: number;
 }
 
-const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ filePath, onPageChange, onTocLoad, onTextSelect, initialPage = 1 }, ref) => {
+const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ filePath, onPageChange, onTocLoad, onTextSelect, onZoomChange, initialPage = 1 }, ref) => {
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [scale, setScale] = useState(1.0);
@@ -76,14 +77,29 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ filePath, onPageCh
     }
   }, [numPages, onPageChange]);
 
-  const handleZoomIn = useCallback(() => setScale((s) => Math.min(s + 0.2, 2.0)), []);
-  const handleZoomOut = useCallback(() => setScale((s) => Math.max(s - 0.2, 0.5)), []);
+  const handleZoomIn = useCallback(() => {
+    setScale((s) => {
+      const newScale = Math.min(s + 0.2, 2.0);
+      onZoomChange?.(newScale);
+      return newScale;
+    });
+  }, [onZoomChange]);
+
+  const handleZoomOut = useCallback(() => {
+    setScale((s) => {
+      const newScale = Math.max(s - 0.2, 0.5);
+      onZoomChange?.(newScale);
+      return newScale;
+    });
+  }, [onZoomChange]);
   const handleFitWidth = useCallback(() => {
     if (containerRef.current) {
       const containerWidth = containerRef.current.clientWidth - 48;
-      setScale(containerWidth / 612);
+      const newScale = containerWidth / 612;
+      setScale(newScale);
+      onZoomChange?.(newScale);
     }
-  }, []);
+  }, [onZoomChange]);
 
   // Expose methods via ref
   useImperativeHandle(ref, () => ({

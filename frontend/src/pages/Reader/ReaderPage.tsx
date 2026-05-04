@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Drawer, List, Spin, message, Space, InputNumber, Tag } from 'antd';
-import { ArrowLeftOutlined, BookOutlined, StarOutlined, LeftOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined, HighlightOutlined, MessageOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, BookOutlined, LeftOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined, HighlightOutlined, MessageOutlined } from '@ant-design/icons';
 import { bookApi, Book } from '../../services/bookApi';
 import { annotationApi } from '../../services/annotationApi';
 import type { Annotation } from '../../services/annotationApi';
@@ -180,7 +180,6 @@ export default function ReaderPage() {
           <span style={{ width: 1, height: 16, background: '#303030' }} />
           <Button icon={<BookOutlined />} type="text" onClick={() => setShowToc(true)} />
           <Button icon={<HighlightOutlined />} type="text" onClick={() => setShowAnnotations(true)} />
-          <Button icon={<StarOutlined />} type="text" />
           <Button icon={<MessageOutlined />} type="text" onClick={() => setShowChat(!showChat)} />
         </Space>
       </div>
@@ -194,6 +193,7 @@ export default function ReaderPage() {
             onPageChange={handlePageChange}
             onTocLoad={setToc}
             onTextSelect={handleTextSelect}
+            onZoomChange={(scale) => setZoom(Math.round(scale * 100))}
             initialPage={currentPage}
           />
         ) : book.file_format === 'epub' ? (
