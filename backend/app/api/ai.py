@@ -4,25 +4,19 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.config import settings
 from app.schemas.ai import SummaryRequest, SummaryResponse, ChatRequest, ChatResponse, ChatMessage
-from app.services.ai.openai_adapter import OpenAIAdapter
-from app.services.ai.claude_adapter import ClaudeAdapter
-from app.services.ai.ollama_adapter import OllamaAdapter
 from app.services.ai.base import AIServiceInterface
+from app.services.ai.factory import AIServiceFactory, AIServiceUnavailableError
+from app.services.network_checker import NetworkChecker
 
 router = APIRouter()
 
+# Module-level singletons
+_network_checker = NetworkChecker()
 
-def get_ai_service() -> AIServiceInterface:
-    """Get the configured AI service."""
-    provider = settings.AI_PROVIDER
-    if provider == "openai":
-        return OpenAIAdapter(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_BASE_URL)
-    elif provider == "claude":
-        return ClaudeAdapter(api_key=settings.CLAUDE_API_KEY)
-    elif provider == "ollama":
-        return OllamaAdapter(base_url=settings.OLLAMA_BASE_URL)
-    else:
-        raise ValueError(f"Unknown AI provider: {provider}")
+
+def _get_ai_factory() -> AIServiceFactory:
+    """Create an AIServiceFactory wired to the current settings."""
+    return AIServiceFactory(settings=settings, network_checker=_network_checker)
 
 
 @router.get("/config")
@@ -32,6 +26,30 @@ def get_ai_config():
         "has_openai_key": bool(settings.OPENAI_API_KEY),
         "has_claude_key": bool(settings.CLAUDE_API_KEY),
         "ollama_url": settings.OLLAMA_BASE_URL,
+    }
+
+
+@router.get("/status")
+async def ai_status():
+    """Return current network state and which AI provider would be used."""
+    online = await _network_checker.is_online()
+    provider = settings.AI_PROVIDER
+
+    if online:
+        available = provider  # configured cloud provider is reachable
+    else:
+        # Check if Ollama is reachable
+        factory = _get_ai_factory()
+        try:
+            _, resolved_provider = await factory.get_service()
+            available = resolved_provider
+        except AIServiceUnavailableError:
+            available = None
+
+    return {
+        "provider": provider,
+        "online": online,
+        "available": available,
     }
 
 
@@ -48,7 +66,11 @@ async def generate_summary(
     if book.summary and not request.force_regenerate:
         return SummaryResponse(book_id=book.id, summary=book.summary, tags=[])
 
-    ai_service = get_ai_service()
+    factory = _get_ai_factory()
+    try:
+        ai_service, _ = await factory.get_service()
+    except AIServiceUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
 
     # Read book content for AI processing
     from app.services.parser.registry import ParserRegistry
@@ -71,7 +93,12 @@ async def generate_summary(
 async def chat_with_ai(
     request: ChatRequest,
 ):
-    ai_service = get_ai_service()
+    factory = _get_ai_factory()
+    try:
+        ai_service, _ = await factory.get_service()
+    except AIServiceUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
     context = "\n\n".join(request.context_passages) if request.context_passages else None
 
     response_text = await ai_service.chat(
