@@ -5,7 +5,7 @@ directories:
 
 files:
   - dist/**/*
-  - electron/**/*
+  - electron-dist/**/*
 
 extraResources:
   - from: ../backend/dist/

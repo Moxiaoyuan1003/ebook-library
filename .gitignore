@@ -18,6 +18,7 @@ dist/
 # Electron
 out/
 release/
+frontend/electron-dist/
 
 # IDE
 .vscode/
