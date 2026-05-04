@@ -1,17 +1,19 @@
 // frontend/src/pages/Reader/ReaderPage.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Drawer, List, Spin, message, Space, InputNumber, Tag } from 'antd';
 import { ArrowLeftOutlined, BookOutlined, StarOutlined, LeftOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined, HighlightOutlined, MessageOutlined } from '@ant-design/icons';
 import { bookApi, Book } from '../../services/bookApi';
 import { annotationApi } from '../../services/annotationApi';
 import type { Annotation } from '../../services/annotationApi';
+import type { TocItem } from '../../types/reader';
 import PdfViewer from '../../components/PdfViewer';
+import type { PdfViewerRef } from '../../components/PdfViewer';
 import EpubViewer from '../../components/EpubViewer';
+import type { EpubViewerRef } from '../../components/EpubViewer';
 import TextSelectionMenu from '../../components/TextSelectionMenu';
 import AnnotationSidebar from '../../components/AnnotationSidebar';
 import ReadingChatPanel from '../../components/ReadingChatPanel';
-import type { TocItem } from '../../types/reader';
 
 export default function ReaderPage() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -27,6 +29,9 @@ export default function ReaderPage() {
   const [selectionMenu, setSelectionMenu] = useState<{ visible: boolean; x: number; y: number; text: string }>({ visible: false, x: 0, y: 0, text: '' });
   const [showChat, setShowChat] = useState(false);
   const [chatContext, setChatContext] = useState('');
+
+  const pdfRef = useRef<PdfViewerRef>(null);
+  const epubRef = useRef<EpubViewerRef>(null);
 
   useEffect(() => {
     if (bookId) {
@@ -71,19 +76,19 @@ export default function ReaderPage() {
   };
 
   const goToPage = (page: number) => {
-    (window as any).__pdfViewer?.goToPage(page);
+    pdfRef.current?.goToPage(page);
   };
 
   const handleZoomIn = () => {
     const newZoom = Math.min(zoom + 20, 200);
     setZoom(newZoom);
-    (window as any).__pdfViewer?.handleZoomIn();
+    pdfRef.current?.handleZoomIn();
   };
 
   const handleZoomOut = () => {
     const newZoom = Math.max(zoom - 20, 50);
     setZoom(newZoom);
-    (window as any).__pdfViewer?.handleZoomOut();
+    pdfRef.current?.handleZoomOut();
   };
 
   const handleTextSelect = (text: string, rectOrCfi: any) => {
@@ -142,6 +147,8 @@ export default function ReaderPage() {
     return <div>图书未找到</div>;
   }
 
+  const isPdf = book.file_format === 'pdf';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Toolbar */}
@@ -149,21 +156,27 @@ export default function ReaderPage() {
         <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/')} />
         <span style={{ flex: 1, textAlign: 'center', fontSize: 14 }}>{book.title}</span>
         <Space>
-          <Button icon={<LeftOutlined />} type="text" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} />
-          <InputNumber
-            min={1}
-            max={totalPages || 1}
-            value={currentPage}
-            onChange={(v) => v && goToPage(v)}
-            size="small"
-            style={{ width: 60 }}
-          />
-          <span style={{ color: '#888', fontSize: 12 }}>/ {totalPages}</span>
-          <Button icon={<RightOutlined />} type="text" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages} />
-          <span style={{ width: 1, height: 16, background: '#303030' }} />
-          <Button icon={<ZoomOutOutlined />} type="text" onClick={handleZoomOut} />
-          <Tag style={{ fontSize: 11 }}>{zoom}%</Tag>
-          <Button icon={<ZoomInOutlined />} type="text" onClick={handleZoomIn} />
+          {isPdf ? (
+            <>
+              <Button icon={<LeftOutlined />} type="text" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} />
+              <InputNumber
+                min={1}
+                max={totalPages || 1}
+                value={currentPage}
+                onChange={(v) => v && goToPage(v)}
+                size="small"
+                style={{ width: 60 }}
+              />
+              <span style={{ color: '#888', fontSize: 12 }}>/ {totalPages}</span>
+              <Button icon={<RightOutlined />} type="text" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages} />
+              <span style={{ width: 1, height: 16, background: '#303030' }} />
+              <Button icon={<ZoomOutOutlined />} type="text" onClick={handleZoomOut} />
+              <Tag style={{ fontSize: 11 }}>{zoom}%</Tag>
+              <Button icon={<ZoomInOutlined />} type="text" onClick={handleZoomIn} />
+            </>
+          ) : (
+            <Tag style={{ fontSize: 11 }}>阅读中</Tag>
+          )}
           <span style={{ width: 1, height: 16, background: '#303030' }} />
           <Button icon={<BookOutlined />} type="text" onClick={() => setShowToc(true)} />
           <Button icon={<HighlightOutlined />} type="text" onClick={() => setShowAnnotations(true)} />
@@ -174,8 +187,9 @@ export default function ReaderPage() {
 
       {/* Content area */}
       <div style={{ flex: 1, overflow: 'hidden', background: '#0a0a0a' }}>
-        {book.file_format === 'pdf' ? (
+        {isPdf ? (
           <PdfViewer
+            ref={pdfRef}
             filePath={book.file_path}
             onPageChange={handlePageChange}
             onTocLoad={setToc}
@@ -184,6 +198,7 @@ export default function ReaderPage() {
           />
         ) : book.file_format === 'epub' ? (
           <EpubViewer
+            ref={epubRef}
             filePath={book.file_path}
             onLocationChange={(cfi, progress) => {
               if (bookId) {
@@ -209,8 +224,8 @@ export default function ReaderPage() {
             <List.Item
               style={{ cursor: 'pointer', padding: '8px 0' }}
               onClick={() => {
-                if (book?.file_format === 'epub') {
-                  (window as any).__epubViewer?.goToHref(item.href);
+                if (!isPdf && item.href) {
+                  epubRef.current?.goToHref(item.href);
                 } else {
                   goToPage(item.pageNumber);
                 }
