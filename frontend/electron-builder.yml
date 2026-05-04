@@ -1,0 +1,51 @@
+appId: com.ebook-library.app
+productName: 个人图书管理
+directories:
+  output: release
+
+files:
+  - dist/**/*
+  - electron/**/*
+
+extraResources:
+  - from: ../backend/dist/
+    to: backend
+    filter:
+      - "backend*"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  icon: build/icon.ico
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  icon: build/icon.icns
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+  icon: build/icon.png
+
+publish:
+  provider: github
+  owner: YOUR_GITHUB_USERNAME
+  repo: ebook-library
