@@ -75,7 +75,11 @@ export default function EpubViewer({ filePath, onLocationChange, onTocLoad, init
         onTocLoad?.(toc);
       }
       // Generate locations for progress tracking
-      book.locations.generate(1024).then(() => setReady(true));
+      book.locations.generate(1024).then(() => setReady(true)).catch((err: unknown) => {
+        console.warn('Failed to generate EPUB locations:', err);
+      });
+    }).catch((err: unknown) => {
+      console.warn('Failed to load EPUB book:', err);
     });
 
     return () => {
@@ -91,6 +95,7 @@ export default function EpubViewer({ filePath, onLocationChange, onTocLoad, init
           color: darkMode ? '#e0e0e0' : '#333',
           background: darkMode ? '#0a0a0a' : '#fff',
           'font-size': `${fontSize}px`,
+          'line-height': '1.6',
         },
       });
     }
