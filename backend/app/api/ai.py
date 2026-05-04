@@ -1,3 +1,6 @@
+from datetime import datetime
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -126,6 +129,11 @@ async def reading_chat(
         if not session:
             raise HTTPException(status_code=404, detail="Reading session not found")
     else:
+        from app.models import Book
+        book = db.query(Book).filter(Book.id == request.book_id).first()
+        if not book:
+            raise HTTPException(status_code=404, detail="Book not found")
+
         session = ReadingSession(
             book_id=request.book_id,
             messages=[],
@@ -135,7 +143,6 @@ async def reading_chat(
         db.flush()
 
     # Append user message
-    from datetime import datetime
     session.messages = session.messages or []
     session.messages.append({
         "role": "user",
@@ -181,7 +188,7 @@ async def reading_chat(
 
 @router.get("/reading-sessions/{book_id}", response_model=list[ReadingSessionResponse])
 async def list_reading_sessions(
-    book_id: str,
+    book_id: UUID,
     db: Session = Depends(get_db),
 ):
     from app.models.reading_session import ReadingSession

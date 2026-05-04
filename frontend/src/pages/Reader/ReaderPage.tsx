@@ -2,10 +2,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Drawer, List, Spin, message, Space, InputNumber, Tag } from 'antd';
-import { ArrowLeftOutlined, BookOutlined, StarOutlined, LeftOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, BookOutlined, StarOutlined, LeftOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined, HighlightOutlined, MessageOutlined } from '@ant-design/icons';
 import { bookApi, Book } from '../../services/bookApi';
+import { annotationApi } from '../../services/annotationApi';
+import type { Annotation } from '../../services/annotationApi';
 import PdfViewer from '../../components/PdfViewer';
 import EpubViewer from '../../components/EpubViewer';
+import TextSelectionMenu from '../../components/TextSelectionMenu';
+import AnnotationSidebar from '../../components/AnnotationSidebar';
+import ReadingChatPanel from '../../components/ReadingChatPanel';
 
 interface TocItem {
   title: string;
@@ -24,6 +29,10 @@ export default function ReaderPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [zoom, setZoom] = useState(100);
+  const [showAnnotations, setShowAnnotations] = useState(false);
+  const [selectionMenu, setSelectionMenu] = useState<{ visible: boolean; x: number; y: number; text: string }>({ visible: false, x: 0, y: 0, text: '' });
+  const [showChat, setShowChat] = useState(false);
+  const [chatContext, setChatContext] = useState('');
 
   useEffect(() => {
     if (bookId) {
@@ -83,6 +92,54 @@ export default function ReaderPage() {
     (window as any).__pdfViewer?.handleZoomOut();
   };
 
+  const handleTextSelect = (text: string, rectOrCfi: any) => {
+    if (rectOrCfi instanceof DOMRect) {
+      setSelectionMenu({ visible: true, x: rectOrCfi.left + rectOrCfi.width / 2, y: rectOrCfi.top - 10, text });
+    } else {
+      // EPUB — position near center of screen
+      setSelectionMenu({ visible: true, x: window.innerWidth / 2, y: 100, text });
+    }
+  };
+
+  const handleHighlight = async (color: string) => {
+    if (!bookId) return;
+    try {
+      await annotationApi.create({
+        book_id: bookId,
+        type: 'highlight',
+        selected_text: selectionMenu.text,
+        highlight_color: color,
+        page_number: currentPage,
+      });
+      message.success('已高亮');
+    } catch {
+      message.error('高亮失败');
+    }
+    setSelectionMenu({ ...selectionMenu, visible: false });
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(selectionMenu.text).then(() => {
+      message.success('已复制');
+    }).catch(() => {
+      message.error('复制失败');
+    });
+    setSelectionMenu({ ...selectionMenu, visible: false });
+  };
+
+  const handleAskAI = () => {
+    setChatContext(selectionMenu.text);
+    setShowChat(true);
+    setSelectionMenu({ ...selectionMenu, visible: false });
+  };
+
+  const handleJumpToAnnotation = (annotation: Annotation) => {
+    if (annotation.page_number) {
+      goToPage(annotation.page_number);
+    }
+    setShowAnnotations(false);
+  };
+
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><Spin size="large" /></div>;
   }
@@ -115,7 +172,9 @@ export default function ReaderPage() {
           <Button icon={<ZoomInOutlined />} type="text" onClick={handleZoomIn} />
           <span style={{ width: 1, height: 16, background: '#303030' }} />
           <Button icon={<BookOutlined />} type="text" onClick={() => setShowToc(true)} />
+          <Button icon={<HighlightOutlined />} type="text" onClick={() => setShowAnnotations(true)} />
           <Button icon={<StarOutlined />} type="text" />
+          <Button icon={<MessageOutlined />} type="text" onClick={() => setShowChat(!showChat)} />
         </Space>
       </div>
 
@@ -126,6 +185,7 @@ export default function ReaderPage() {
             filePath={book.file_path}
             onPageChange={handlePageChange}
             onTocLoad={setToc}
+            onTextSelect={handleTextSelect}
             initialPage={currentPage}
           />
         ) : book.file_format === 'epub' ? (
@@ -137,6 +197,7 @@ export default function ReaderPage() {
               }
             }}
             onTocLoad={setToc}
+            onTextSelect={handleTextSelect}
             initialCfi={undefined}
           />
         ) : (
@@ -168,6 +229,37 @@ export default function ReaderPage() {
           )}
         />
       </Drawer>
+
+      {/* Text Selection Menu */}
+      <TextSelectionMenu
+        visible={selectionMenu.visible}
+        position={{ x: selectionMenu.x, y: selectionMenu.y }}
+        selectedText={selectionMenu.text}
+        onAskAI={handleAskAI}
+        onHighlight={handleHighlight}
+        onCopy={handleCopy}
+        onClose={() => setSelectionMenu({ ...selectionMenu, visible: false })}
+      />
+
+      {/* Annotation Sidebar */}
+      {bookId && (
+        <AnnotationSidebar
+          visible={showAnnotations}
+          bookId={bookId}
+          onClose={() => setShowAnnotations(false)}
+          onJumpToAnnotation={handleJumpToAnnotation}
+        />
+      )}
+
+      {/* Reading Chat Panel */}
+      {bookId && (
+        <ReadingChatPanel
+          visible={showChat}
+          bookId={bookId}
+          selectedText={chatContext}
+          onClose={() => { setShowChat(false); setChatContext(''); }}
+        />
+      )}
     </div>
   );
 }

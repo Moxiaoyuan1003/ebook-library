@@ -6,6 +6,7 @@ import AiAssistantPage from './pages/AiAssistant/AiAssistantPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import ReaderPage from './pages/Reader/ReaderPage';
 import KnowledgeCardsPage from './pages/KnowledgeCards/KnowledgeCardsPage';
+import ExportPage from './pages/Export/ExportPage';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="reader/:bookId" element={<ReaderPage />} />
           <Route path="knowledge-cards" element={<KnowledgeCardsPage />} />
+          <Route path="export" element={<ExportPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

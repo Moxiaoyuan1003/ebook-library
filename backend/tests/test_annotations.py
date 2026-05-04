@@ -71,9 +71,19 @@ def _override_get_db():
         db.close()
 
 
-app.dependency_overrides[get_db] = _override_get_db
-
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _use_test_db():
+    """Ensure this test file's DB override is active for each test."""
+    previous = app.dependency_overrides.get(get_db)
+    app.dependency_overrides[get_db] = _override_get_db
+    yield
+    if previous is not None:
+        app.dependency_overrides[get_db] = previous
+    else:
+        app.dependency_overrides.pop(get_db, None)
 
 
 # ── Helper to create a book for annotation FK ──
