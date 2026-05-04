@@ -1,11 +1,21 @@
 // frontend/src/components/PdfViewer.tsx
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import type { TocItem } from '../types/reader';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+export interface PdfViewerRef {
+  goToPage: (page: number) => void;
+  handleZoomIn: () => void;
+  handleZoomOut: () => void;
+  handleFitWidth: () => void;
+  getScale: () => number;
+  getCurrentPage: () => number;
+  getNumPages: () => number;
+}
 
 interface PdfViewerProps {
   filePath: string;
@@ -15,7 +25,7 @@ interface PdfViewerProps {
   initialPage?: number;
 }
 
-export default function PdfViewer({ filePath, onPageChange, onTocLoad, onTextSelect, initialPage = 1 }: PdfViewerProps) {
+const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ filePath, onPageChange, onTocLoad, onTextSelect, initialPage = 1 }, ref) => {
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [scale, setScale] = useState(1.0);
@@ -59,24 +69,41 @@ export default function PdfViewer({ filePath, onPageChange, onTocLoad, onTextSel
     return items;
   };
 
-  const goToPage = (page: number) => {
-    if (page >= 1 && page <= numPages) {
-      setCurrentPage(page);
-      onPageChange?.(page, numPages);
-    }
-  };
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage((prev) => {
+      if (page >= 1 && page <= numPages) {
+        onPageChange?.(page, numPages);
+        return page;
+      }
+      return prev;
+    });
+  }, [numPages, onPageChange]);
 
-  const handleZoomIn = () => setScale((s) => Math.min(s + 0.2, 2.0));
-  const handleZoomOut = () => setScale((s) => Math.max(s - 0.2, 0.5));
-  const handleFitWidth = () => {
+  const handleZoomIn = useCallback(() => setScale((s) => Math.min(s + 0.2, 2.0)), []);
+  const handleZoomOut = useCallback(() => setScale((s) => Math.max(s - 0.2, 0.5)), []);
+  const handleFitWidth = useCallback(() => {
     if (containerRef.current) {
       const containerWidth = containerRef.current.clientWidth - 48;
-      setScale(containerWidth / 612); // 612 = standard PDF width in points
+      setScale(containerWidth / 612);
     }
-  };
+  }, []);
 
-  // Keyboard navigation
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    goToPage,
+    handleZoomIn,
+    handleZoomOut,
+    handleFitWidth,
+    getScale: () => scale,
+    getCurrentPage: () => currentPage,
+    getNumPages: () => numPages,
+  }), [goToPage, handleZoomIn, handleZoomOut, handleFitWidth, scale, currentPage, numPages]);
+
+  // Keyboard navigation — scoped to container
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
         e.preventDefault();
@@ -92,9 +119,9 @@ export default function PdfViewer({ filePath, onPageChange, onTocLoad, onTextSel
         handleZoomOut();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPage, numPages]);
+    container.addEventListener('keydown', handleKeyDown);
+    return () => container.removeEventListener('keydown', handleKeyDown);
+  }, [currentPage, numPages, goToPage, handleZoomIn, handleZoomOut]);
 
   // Text selection handler
   useEffect(() => {
@@ -115,15 +142,14 @@ export default function PdfViewer({ filePath, onPageChange, onTocLoad, onTextSel
     return () => container.removeEventListener('mouseup', handleMouseUp);
   }, [onTextSelect]);
 
-  // Expose navigation methods via ref-like approach
-  useEffect(() => {
-    (window as any).__pdfViewer = { goToPage, handleZoomIn, handleZoomOut, handleFitWidth, getScale: () => scale, getCurrentPage: () => currentPage, getNumPages: () => numPages };
-  }, [currentPage, numPages, scale]);
-
   const fileUrl = filePath.startsWith('http') ? filePath : `/api/books/file?file_path=${encodeURIComponent(filePath)}`;
 
   return (
-    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'auto', height: '100%', padding: 24 }}>
+    <div
+      ref={containerRef}
+      tabIndex={0}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'auto', height: '100%', padding: 24, outline: 'none' }}
+    >
       <Document file={fileUrl} onLoadSuccess={onDocumentLoadSuccess} onLoadError={() => console.error('PDF load error')}>
         <Page
           pageNumber={currentPage}
@@ -134,4 +160,8 @@ export default function PdfViewer({ filePath, onPageChange, onTocLoad, onTextSel
       </Document>
     </div>
   );
-}
+});
+
+PdfViewer.displayName = 'PdfViewer';
+
+export default PdfViewer;
