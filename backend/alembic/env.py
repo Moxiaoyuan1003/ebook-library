@@ -11,7 +11,7 @@ from app.core.database import Base
 from app.core.config import settings
 
 # Import all models so they are registered with Base.metadata
-from app.models import Book, Tag, Bookshelf, Passage, Annotation, KnowledgeCard  # noqa: F401
+import app.models  # noqa: F401 — registers all models with Base.metadata
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.get_database_url())
