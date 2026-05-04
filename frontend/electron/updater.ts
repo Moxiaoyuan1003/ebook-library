@@ -5,6 +5,13 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
+  // Explicitly set update source (no publish config in electron-builder.yml)
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'Moxiaoyuan1003',
+    repo: 'ebook-library',
+  });
+
   autoUpdater.on('update-available', (info: UpdateInfo) => {
     mainWindow.webContents.send('update-available', {
       version: info.version,

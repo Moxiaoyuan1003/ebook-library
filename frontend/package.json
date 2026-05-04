@@ -1,6 +1,12 @@
 {
   "name": "ebook-library-frontend",
   "version": "0.1.0",
+  "description": "个人图书管理 - 支持多种电子书格式的桌面图书管理应用",
+  "homepage": "https://github.com/Moxiaoyuan1003/ebook-library",
+  "author": {
+    "name": "Moxiaoyuan1003",
+    "email": "moxiaoyuan1003@users.noreply.github.com"
+  },
   "private": true,
   "main": "electron-dist/main.js",
   "scripts": {

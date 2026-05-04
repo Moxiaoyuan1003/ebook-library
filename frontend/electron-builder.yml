@@ -44,8 +44,6 @@ linux:
       arch:
         - x64
   icon: resources/icon.png
+  maintainer: Moxiaoyuan1003 <moxiaoyuan1003@users.noreply.github.com>
+  category: Office
 
-publish:
-  provider: github
-  owner: Moxiaoyuan1003
-  repo: ebook-library
