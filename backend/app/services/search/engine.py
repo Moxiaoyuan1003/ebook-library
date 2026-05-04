@@ -4,7 +4,7 @@ from typing import Optional
 from uuid import UUID
 
 from app.models import Book, Passage
-from app.schemas.search import SearchResult
+from app.schemas.search import SearchResult, CrossBookSource, CrossBookPassage
 
 
 class SearchEngine:
@@ -130,3 +130,55 @@ class SearchEngine:
 
         self.db.commit()
         return indexed
+
+    async def cross_book_query(self, query: str, top_k: int = 20) -> tuple[str, list[CrossBookSource]]:
+        """Search across books and synthesize an AI answer with citations."""
+        if not self.ai_service:
+            raise ValueError("AI service required for cross-book query")
+
+        # Get semantic search results
+        results = await self._semantic_search(query, top_k)
+
+        # Group by book_id, keep top 3 passages per book
+        from collections import defaultdict
+        book_passages: dict[UUID, list[SearchResult]] = defaultdict(list)
+        for result in results:
+            if len(book_passages[result.book_id]) < 3:
+                book_passages[result.book_id].append(result)
+
+        # Build sources
+        sources = []
+        for book_id, passages in book_passages.items():
+            cross_passages = [
+                CrossBookPassage(
+                    page_number=p.page_number,
+                    content=p.content,
+                    score=p.score,
+                )
+                for p in passages
+            ]
+            sources.append(
+                CrossBookSource(
+                    book_id=book_id,
+                    book_title=passages[0].book_title,
+                    passages=cross_passages,
+                )
+            )
+
+        # Build context string for AI
+        context_parts = []
+        for source in sources:
+            for passage in source.passages:
+                page_info = f", Page {passage.page_number}" if passage.page_number else ""
+                context_parts.append(
+                    f"[{source.book_title}{page_info}]: {passage.content}"
+                )
+        context = "\n\n".join(context_parts)
+
+        # Get AI-synthesized answer
+        answer = await self.ai_service.chat(
+            messages=[{"role": "user", "content": query}],
+            context=context,
+        )
+
+        return answer, sources
