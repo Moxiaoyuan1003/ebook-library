@@ -82,7 +82,10 @@ const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(({ filePath, onLoc
     });
 
     // Load TOC
+    let cancelled = false;
+
     book.ready.then(() => {
+      if (cancelled) return;
       const navigation = book.navigation;
       if (navigation?.toc) {
         const toc = navigation.toc.map((item: any, i: number) => ({
@@ -93,7 +96,9 @@ const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(({ filePath, onLoc
         onTocLoadRef.current?.(toc);
       }
       // Generate locations for progress tracking
-      book.locations.generate(1024).then(() => setReady(true)).catch((err: unknown) => {
+      book.locations.generate(1024).then(() => {
+        if (!cancelled) setReady(true);
+      }).catch((err: unknown) => {
         console.warn('Failed to generate EPUB locations:', err);
       });
     }).catch((err: unknown) => {
@@ -101,6 +106,7 @@ const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(({ filePath, onLoc
     });
 
     return () => {
+      cancelled = true;
       book.destroy();
     };
   }, [fileUrl]);
@@ -134,6 +140,8 @@ const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(({ filePath, onLoc
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle when viewer is focused
+      if (!viewerRef.current?.contains(document.activeElement)) return;
       if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
     };
@@ -142,7 +150,7 @@ const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(({ filePath, onLoc
   }, [goNext, goPrev]);
 
   return (
-    <div ref={viewerRef} style={{ width: '100%', height: '100%' }} />
+    <div ref={viewerRef} tabIndex={0} style={{ width: '100%', height: '100%', outline: 'none' }} />
   );
 });
 
