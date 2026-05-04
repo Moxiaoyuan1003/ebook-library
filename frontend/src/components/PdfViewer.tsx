@@ -70,13 +70,10 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ filePath, onPageCh
   };
 
   const goToPage = useCallback((page: number) => {
-    setCurrentPage((prev) => {
-      if (page >= 1 && page <= numPages) {
-        onPageChange?.(page, numPages);
-        return page;
-      }
-      return prev;
-    });
+    if (page >= 1 && page <= numPages) {
+      setCurrentPage(page);
+      onPageChange?.(page, numPages);
+    }
   }, [numPages, onPageChange]);
 
   const handleZoomIn = useCallback(() => setScale((s) => Math.min(s + 0.2, 2.0)), []);
