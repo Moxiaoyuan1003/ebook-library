@@ -1,13 +1,13 @@
+from pathlib import Path
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from typing import Optional
-from uuid import UUID
-from pathlib import Path
 
 from app.core.database import get_db
 from app.models import ReadingProgress
-from app.schemas.book import BookCreate, BookUpdate, BookResponse, BookListResponse
+from app.schemas.book import BookCreate, BookListResponse, BookResponse, BookUpdate
 from app.services.book_service import BookService
 from app.services.import_service import ImportService
 
@@ -18,9 +18,9 @@ router = APIRouter()
 def list_books(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    search: Optional[str] = None,
-    reading_status: Optional[str] = None,
-    is_favorite: Optional[bool] = None,
+    search: str | None = None,
+    reading_status: str | None = None,
+    is_favorite: bool | None = None,
     db: Session = Depends(get_db),
 ):
     service = BookService(db)
@@ -115,9 +115,9 @@ def get_reading_progress(book_id: UUID, db: Session = Depends(get_db)):
 @router.put("/{book_id}/progress")
 def update_reading_progress(
     book_id: UUID,
-    current_page: Optional[int] = None,
-    current_cfi: Optional[str] = None,
-    progress_percent: Optional[float] = None,
+    current_page: int | None = None,
+    current_cfi: str | None = None,
+    progress_percent: float | None = None,
     db: Session = Depends(get_db),
 ):
     """Update reading progress for a book."""

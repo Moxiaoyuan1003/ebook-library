@@ -1,20 +1,13 @@
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.types import CHAR
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
-from app.core.database import get_db, Base
+from app.core.database import Base, get_db
 
 # Import models to register them in Base.metadata
-from app.models.book import Book
-from app.models.tag import Tag, book_tags
-from app.models.bookshelf import Bookshelf, bookshelf_books
-from app.models.passage import Passage
-from app.models.annotation import Annotation
-from app.models.knowledge_card import KnowledgeCard
 
 
 def _patch_uuid_columns_for_sqlite():

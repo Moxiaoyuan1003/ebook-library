@@ -1,6 +1,5 @@
 import pytest
-import uuid
-from unittest.mock import AsyncMock, patch, MagicMock
+
 from app.models.book import Book
 from app.services.enrichment import MetadataEnrichmentService
 
@@ -80,15 +79,15 @@ async def test_enrich_sets_metadata_enriched_on_success(db_session, monkeypatch)
         if "googleapis.com" in url:
             return {
                 "totalItems": 1,
-                "items": [{
-                    "volumeInfo": {
-                        "publisher": "Test Publisher",
-                        "publishedDate": "2023-01-15",
-                        "imageLinks": {
-                            "thumbnail": "https://example.com/cover.jpg"
+                "items": [
+                    {
+                        "volumeInfo": {
+                            "publisher": "Test Publisher",
+                            "publishedDate": "2023-01-15",
+                            "imageLinks": {"thumbnail": "https://example.com/cover.jpg"},
                         }
                     }
-                }]
+                ],
             }
         return None
 
@@ -128,12 +127,14 @@ async def test_enrich_falls_back_to_open_library(db_session, monkeypatch):
         if "openlibrary.org" in url:
             return {
                 "numFound": 1,
-                "docs": [{
-                    "publisher": ["OL Publisher"],
-                    "first_publish_year": 1999,
-                    "cover_i": 12345,
-                    "open_library_key": "/works/OL123W",
-                }]
+                "docs": [
+                    {
+                        "publisher": ["OL Publisher"],
+                        "first_publish_year": 1999,
+                        "cover_i": 12345,
+                        "open_library_key": "/works/OL123W",
+                    }
+                ],
             }
         return None
 
@@ -205,10 +206,12 @@ async def test_http_get_retries_on_429(monkeypatch):
             pass
 
     import httpx
+
     monkeypatch.setattr(httpx, "AsyncClient", MockClient)
 
     # Patch asyncio.sleep to avoid actual waiting
     import asyncio
+
     sleeps = []
     original_sleep_func = asyncio.sleep
 

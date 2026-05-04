@@ -1,12 +1,13 @@
 """AI service factory with network-aware provider selection."""
+
 from __future__ import annotations
 
 import httpx
 
 from app.services.ai.base import AIServiceInterface
-from app.services.ai.openai_adapter import OpenAIAdapter
 from app.services.ai.claude_adapter import ClaudeAdapter
 from app.services.ai.ollama_adapter import OllamaAdapter
+from app.services.ai.openai_adapter import OpenAIAdapter
 from app.services.network_checker import NetworkChecker
 
 
@@ -45,9 +46,7 @@ class AIServiceFactory:
         if await self._is_ollama_healthy():
             return OllamaAdapter(base_url=self._settings.OLLAMA_BASE_URL), "ollama"
 
-        raise AIServiceUnavailableError(
-            "No AI service available: offline and Ollama is not reachable."
-        )
+        raise AIServiceUnavailableError("No AI service available: offline and Ollama is not reachable.")
 
     # ------------------------------------------------------------------
     # Internal helpers

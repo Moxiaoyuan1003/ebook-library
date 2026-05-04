@@ -1,5 +1,6 @@
-import chardet
 from pathlib import Path
+
+import chardet
 
 from app.services.parser.base import BaseParser, ParsedBook
 
@@ -39,22 +40,25 @@ class TXTParser(BaseParser):
     def _split_chapters(self, text: str) -> list[dict]:
         """Split text into chapters by common patterns."""
         import re
-        pattern = r'\n(?=第[一二三四五六七八九十百千\d]+[章节回卷]|Chapter\s+\d+)'
+
+        pattern = r"\n(?=第[一二三四五六七八九十百千\d]+[章节回卷]|Chapter\s+\d+)"
         parts = re.split(pattern, text)
 
         if len(parts) <= 1:
             # No chapters found, split by fixed size
             chunk_size = 3000
-            parts = [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+            parts = [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
 
         chapters = []
         for i, part in enumerate(parts):
             if part.strip():
-                chapters.append({
-                    "title": f"Part {i + 1}",
-                    "content": part.strip(),
-                    "page_start": i + 1,
-                    "page_end": i + 1,
-                })
+                chapters.append(
+                    {
+                        "title": f"Part {i + 1}",
+                        "content": part.strip(),
+                        "page_start": i + 1,
+                        "page_end": i + 1,
+                    }
+                )
 
         return chapters

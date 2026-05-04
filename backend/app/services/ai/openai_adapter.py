@@ -1,4 +1,3 @@
-from typing import Optional
 import openai
 
 from app.services.ai.base import AIServiceInterface
@@ -14,7 +13,10 @@ class OpenAIAdapter(AIServiceInterface):
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": "你是一个专业的图书分析助手。请为以下图书内容生成简洁的摘要，包含核心论点和主要观点。"},
+                {
+                    "role": "system",
+                    "content": "你是一个专业的图书分析助手。请为以下图书内容生成简洁的摘要，包含核心论点和主要观点。",
+                },
                 {"role": "user", "content": text[:5000]},
             ],
             max_tokens=max_tokens,
@@ -25,7 +27,10 @@ class OpenAIAdapter(AIServiceInterface):
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": f"分析以下图书内容，生成{max_tags}个最相关的标签（主题、领域、难度等级）。只返回标签列表，用逗号分隔。"},
+                {
+                    "role": "system",
+                    "content": f"分析以下图书内容，生成{max_tags}个最相关的标签（主题、领域、难度等级）。只返回标签列表，用逗号分隔。",
+                },
                 {"role": "user", "content": text[:3000]},
             ],
             max_tokens=100,
@@ -43,7 +48,7 @@ class OpenAIAdapter(AIServiceInterface):
     async def chat(
         self,
         messages: list[dict],
-        context: Optional[str] = None,
+        context: str | None = None,
         max_tokens: int = 1000,
     ) -> str:
         system_msg = "你是一个专业的图书助手，可以帮助用户理解和分析图书内容。"

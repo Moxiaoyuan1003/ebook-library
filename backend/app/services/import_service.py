@@ -1,18 +1,17 @@
-import asyncio
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
-from uuid import UUID
+
 from sqlalchemy.orm import Session
 
 from app.models import Book
+from app.schemas.book import BookCreate
 from app.services.enrichment import MetadataEnrichmentService
 from app.services.parser.registry import ParserRegistry
-from app.schemas.book import BookCreate
 
 
 class ImportService:
-    def __init__(self, db: Session, on_progress: Optional[Callable] = None):
+    def __init__(self, db: Session, on_progress: Callable | None = None):
         self.db = db
         self.parser_registry = ParserRegistry()
         self.on_progress = on_progress
@@ -27,7 +26,7 @@ class ImportService:
                     files.append(os.path.join(root, filename))
         return files
 
-    def import_file(self, file_path: str) -> Optional[Book]:
+    def import_file(self, file_path: str) -> Book | None:
         """Import a single file."""
         parsed = self.parser_registry.parse(file_path)
         if parsed is None:
@@ -65,7 +64,7 @@ class ImportService:
 
         return book
 
-    async def import_file_enriched(self, file_path: str) -> Optional[Book]:
+    async def import_file_enriched(self, file_path: str) -> Book | None:
         """Import a single file and enrich metadata from external APIs."""
         book = self.import_file(file_path)
         if book:

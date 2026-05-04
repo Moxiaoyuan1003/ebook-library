@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import quote_plus
 
 import httpx
@@ -30,7 +30,7 @@ class MetadataEnrichmentService:
             params += f"&author={quote_plus(author)}"
         return f"https://openlibrary.org/search.json?{params}"
 
-    async def _http_get(self, url: str) -> Optional[dict[str, Any]]:
+    async def _http_get(self, url: str) -> dict[str, Any] | None:
         """HTTP GET with retry logic and exponential backoff for 429 responses.
 
         Max 3 retries total. Doubles the wait time on each 429 retry.
@@ -57,14 +57,10 @@ class MetadataEnrichmentService:
                             backoff *= 2
                             continue
                         else:
-                            logger.error(
-                                "Rate limited (429) on %s after %d retries", url, max_retries
-                            )
+                            logger.error("Rate limited (429) on %s after %d retries", url, max_retries)
                             return None
 
-                    logger.warning(
-                        "HTTP %d from %s", response.status_code, url
-                    )
+                    logger.warning("HTTP %d from %s", response.status_code, url)
                     return None
 
             except httpx.TimeoutException:
@@ -80,7 +76,7 @@ class MetadataEnrichmentService:
 
         return None
 
-    async def _download_cover(self, url: str, book_id) -> Optional[str]:
+    async def _download_cover(self, url: str, book_id) -> str | None:
         """Download a cover image and save it locally.
 
         Returns the local file path relative to the project, or None on failure.
@@ -137,9 +133,7 @@ class MetadataEnrichmentService:
         # Strategy 1: Google Books by ISBN
         if book.isbn and book.isbn.strip():
             try:
-                google_data = await self._http_get(
-                    self._google_books_url(book.isbn)
-                )
+                google_data = await self._http_get(self._google_books_url(book.isbn))
                 if google_data and google_data.get("totalItems", 0) > 0:
                     volume_info = google_data["items"][0].get("volumeInfo", {})
                     found_publisher = volume_info.get("publisher")

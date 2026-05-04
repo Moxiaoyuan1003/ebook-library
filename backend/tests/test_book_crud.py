@@ -1,30 +1,24 @@
 """Tests for the Books CRUD API endpoints."""
 
 import uuid as uuid_mod
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.types import CHAR, TypeDecorator
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
-from app.core.database import get_db, Base
+from app.core.database import Base, get_db
 
 # Import ALL models to register them in Base.metadata
 from app.models.book import Book
-from app.models.tag import Tag, book_tags
-from app.models.bookshelf import Bookshelf, bookshelf_books
-from app.models.passage import Passage
-from app.models.annotation import Annotation
-from app.models.knowledge_card import KnowledgeCard
-from app.models.card_link import CardLink
-from app.models.reading_progress import ReadingProgress
-from app.models.reading_session import ReadingSession
 
 
 class SQLiteUUID(TypeDecorator):
     """Platform-independent UUID type for SQLite testing."""
+
     impl = CHAR(36)
     cache_ok = True
 
@@ -46,7 +40,7 @@ def _patch_uuid_columns_for_sqlite():
             if isinstance(column.type, PG_UUID):
                 column.type = SQLiteUUID()
             elif isinstance(column.type, CHAR) and not isinstance(column.type, SQLiteUUID):
-                if hasattr(column.type, 'length') and column.type.length == 36:
+                if hasattr(column.type, "length") and column.type.length == 36:
                     column.type = SQLiteUUID()
 
 
@@ -92,6 +86,7 @@ def _use_test_db():
 
 # ── Helper to insert a book directly via SQLAlchemy ──
 
+
 def _create_test_book(
     title="Test Book",
     author="Test Author",
@@ -119,6 +114,7 @@ def _create_test_book(
 
 
 # ── GET /api/books/ — list books (with data) ──
+
 
 def test_list_books_returns_data():
     _create_test_book(title="Book One", author="Alice")
@@ -174,13 +170,17 @@ def test_list_books_filter_by_favorite():
 
 # ── POST /api/books/ — create book via API ──
 
+
 def test_create_book():
-    resp = client.post("/api/books/", json={
-        "title": "API Created Book",
-        "author": "API Author",
-        "file_path": "/tmp/api_created.epub",
-        "file_format": "epub",
-    })
+    resp = client.post(
+        "/api/books/",
+        json={
+            "title": "API Created Book",
+            "author": "API Author",
+            "file_path": "/tmp/api_created.epub",
+            "file_format": "epub",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["title"] == "API Created Book"
@@ -191,11 +191,14 @@ def test_create_book():
 
 
 def test_create_book_minimal():
-    resp = client.post("/api/books/", json={
-        "title": "Minimal Book",
-        "file_path": "/tmp/minimal.pdf",
-        "file_format": "pdf",
-    })
+    resp = client.post(
+        "/api/books/",
+        json={
+            "title": "Minimal Book",
+            "file_path": "/tmp/minimal.pdf",
+            "file_format": "pdf",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["title"] == "Minimal Book"
@@ -203,6 +206,7 @@ def test_create_book_minimal():
 
 
 # ── GET /api/books/{id} — get single book ──
+
 
 def test_get_book():
     book_id = _create_test_book(title="Fetch Me", author="Fetcher")
@@ -217,6 +221,7 @@ def test_get_book():
 
 # ── GET /api/books/{id} — 404 for nonexistent ──
 
+
 def test_get_book_not_found():
     fake_id = str(uuid_mod.uuid4())
     resp = client.get(f"/api/books/{fake_id}")
@@ -225,17 +230,21 @@ def test_get_book_not_found():
 
 # ── PUT /api/books/{id} — update book metadata ──
 
+
 def test_update_book():
     book_id = _create_test_book(title="Original Title", author="Original Author")
 
-    resp = client.put(f"/api/books/{book_id}", json={
-        "title": "Updated Title",
-        "author": "Updated Author",
-        "reading_status": "reading",
-        "rating": 4,
-        "is_favorite": True,
-        "summary": "A great book.",
-    })
+    resp = client.put(
+        f"/api/books/{book_id}",
+        json={
+            "title": "Updated Title",
+            "author": "Updated Author",
+            "reading_status": "reading",
+            "rating": 4,
+            "is_favorite": True,
+            "summary": "A great book.",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["title"] == "Updated Title"
@@ -249,9 +258,12 @@ def test_update_book():
 def test_update_book_partial():
     book_id = _create_test_book(title="Partial Update", author="Keep Me")
 
-    resp = client.put(f"/api/books/{book_id}", json={
-        "title": "New Title Only",
-    })
+    resp = client.put(
+        f"/api/books/{book_id}",
+        json={
+            "title": "New Title Only",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["title"] == "New Title Only"
@@ -260,6 +272,7 @@ def test_update_book_partial():
 
 # ── PUT /api/books/{id} — 404 for nonexistent ──
 
+
 def test_update_book_not_found():
     fake_id = str(uuid_mod.uuid4())
     resp = client.put(f"/api/books/{fake_id}", json={"title": "Nope"})
@@ -267,6 +280,7 @@ def test_update_book_not_found():
 
 
 # ── DELETE /api/books/{id} — delete book ──
+
 
 def test_delete_book():
     book_id = _create_test_book(title="Delete Me")
@@ -281,6 +295,7 @@ def test_delete_book():
 
 
 # ── DELETE /api/books/{id} — 404 for nonexistent ──
+
 
 def test_delete_book_not_found():
     fake_id = str(uuid_mod.uuid4())

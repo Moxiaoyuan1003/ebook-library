@@ -1,4 +1,3 @@
-import pytest
 from app.services.search.engine import SearchEngine
 
 

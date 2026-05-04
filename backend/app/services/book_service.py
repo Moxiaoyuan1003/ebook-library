@@ -1,6 +1,6 @@
-from sqlalchemy.orm import Session
-from typing import Optional
 from uuid import UUID
+
+from sqlalchemy.orm import Session
 
 from app.models import Book
 from app.schemas.book import BookCreate, BookUpdate
@@ -14,18 +14,16 @@ class BookService:
         self,
         page: int = 1,
         page_size: int = 20,
-        search: Optional[str] = None,
-        reading_status: Optional[str] = None,
-        is_favorite: Optional[bool] = None,
-        tag_id: Optional[UUID] = None,
-        bookshelf_id: Optional[UUID] = None,
+        search: str | None = None,
+        reading_status: str | None = None,
+        is_favorite: bool | None = None,
+        tag_id: UUID | None = None,
+        bookshelf_id: UUID | None = None,
     ) -> tuple[list[Book], int]:
         query = self.db.query(Book)
 
         if search:
-            query = query.filter(
-                Book.title.ilike(f"%{search}%") | Book.author.ilike(f"%{search}%")
-            )
+            query = query.filter(Book.title.ilike(f"%{search}%") | Book.author.ilike(f"%{search}%"))
         if reading_status:
             query = query.filter(Book.reading_status == reading_status)
         if is_favorite is not None:
@@ -35,7 +33,7 @@ class BookService:
         books = query.offset((page - 1) * page_size).limit(page_size).all()
         return books, total
 
-    def get_book(self, book_id: UUID) -> Optional[Book]:
+    def get_book(self, book_id: UUID) -> Book | None:
         return self.db.query(Book).filter(Book.id == book_id).first()
 
     def create_book(self, data: BookCreate) -> Book:
@@ -45,7 +43,7 @@ class BookService:
         self.db.refresh(book)
         return book
 
-    def update_book(self, book_id: UUID, data: BookUpdate) -> Optional[Book]:
+    def update_book(self, book_id: UUID, data: BookUpdate) -> Book | None:
         book = self.get_book(book_id)
         if not book:
             return None

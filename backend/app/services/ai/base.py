@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class AIServiceInterface(ABC):
@@ -24,7 +23,7 @@ class AIServiceInterface(ABC):
     async def chat(
         self,
         messages: list[dict],
-        context: Optional[str] = None,
+        context: str | None = None,
         max_tokens: int = 1000,
     ) -> str:
         """Chat with the AI model."""

@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import Optional
 from uuid import UUID
+
+from pydantic import BaseModel, Field
 
 
 class SummaryRequest(BaseModel):
@@ -21,8 +21,8 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
-    book_id: Optional[str] = None
-    context_passages: Optional[list[str]] = None
+    book_id: str | None = None
+    context_passages: list[str] | None = None
 
 
 class ChatResponse(BaseModel):

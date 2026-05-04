@@ -1,29 +1,25 @@
 """Tests for the export API and service."""
 
 import uuid as uuid_mod
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.types import CHAR, TypeDecorator
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
-from app.core.database import get_db, Base
+from app.core.database import Base, get_db
 
 # Import ALL models to register them in Base.metadata
 from app.models.book import Book
-from app.models.tag import Tag, book_tags
-from app.models.bookshelf import Bookshelf, bookshelf_books
-from app.models.passage import Passage
-from app.models.annotation import Annotation
-from app.models.knowledge_card import KnowledgeCard
-from app.models.card_link import CardLink
 
 
 class SQLiteUUID(TypeDecorator):
     """Platform-independent UUID type for SQLite testing."""
+
     impl = CHAR(36)
     cache_ok = True
 
@@ -45,7 +41,7 @@ def _patch_uuid_columns_for_sqlite():
             if isinstance(column.type, PG_UUID):
                 column.type = SQLiteUUID()
             elif isinstance(column.type, CHAR) and not isinstance(column.type, SQLiteUUID):
-                if hasattr(column.type, 'length') and column.type.length == 36:
+                if hasattr(column.type, "length") and column.type.length == 36:
                     column.type = SQLiteUUID()
 
 
@@ -91,6 +87,7 @@ def _use_test_db():
 
 # ── Helpers ──
 
+
 def _create_book(title="Test Book", author="Test Author", file_format="epub", **kwargs):
     """Create a book directly in the database and return its id."""
     db = TestSessionLocal()
@@ -135,6 +132,7 @@ def _export(data_type, fmt, filters=None):
 
 
 # ── Export Cards Tests ──
+
 
 def test_export_cards_markdown():
     """Export knowledge cards as Markdown."""
@@ -192,6 +190,7 @@ def test_export_cards_csv_with_tag_filter():
 
 # ── Export Annotations Tests ──
 
+
 def test_export_annotations_markdown():
     """Export annotations as Markdown."""
     book_id = _create_book(title="Ann Book")
@@ -236,6 +235,7 @@ def test_export_annotations_with_book_filter():
 
 # ── Export Books Tests ──
 
+
 def test_export_books_markdown():
     """Export books as Markdown."""
     _create_book(title="Book MD 1", author="Author A")
@@ -266,12 +266,14 @@ def test_export_books_csv():
 
 # ── PDF Tests ──
 
+
 def test_export_cards_pdf_no_reportlab():
     """PDF export should return 501 when reportlab is not installed."""
     _create_card(title="PDF Card", content="PDF content")
 
     # Patch the import to simulate reportlab not being installed
     import builtins
+
     original_import = builtins.__import__
 
     def mock_import(name, *args, **kwargs):
@@ -291,6 +293,7 @@ def test_export_annotations_pdf_no_reportlab():
     _create_annotation(book_id, type="highlight", selected_text="PDF text")
 
     import builtins
+
     original_import = builtins.__import__
 
     def mock_import(name, *args, **kwargs):
@@ -309,6 +312,7 @@ def test_export_books_pdf_no_reportlab():
     _create_book(title="PDF Book")
 
     import builtins
+
     original_import = builtins.__import__
 
     def mock_import(name, *args, **kwargs):
@@ -335,6 +339,7 @@ def test_export_cards_pdf_with_reportlab():
 
 
 # ── Validation Tests ──
+
 
 def test_export_invalid_data_type():
     """Should return 400 for invalid data_type."""

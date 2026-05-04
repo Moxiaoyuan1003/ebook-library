@@ -1,7 +1,8 @@
-import ebooklib
-from ebooklib import epub
-from bs4 import BeautifulSoup
 from pathlib import Path
+
+import ebooklib
+from bs4 import BeautifulSoup
+from ebooklib import epub
 
 from app.services.parser.base import BaseParser, ParsedBook
 
@@ -41,12 +42,14 @@ class EPUBParser(BaseParser):
             text = soup.get_text(separator="\n", strip=True)
 
             if text.strip():
-                chapters.append({
-                    "title": item.get_name() or f"Chapter {len(chapters) + 1}",
-                    "content": text,
-                    "page_start": page_num,
-                    "page_end": page_num,
-                })
+                chapters.append(
+                    {
+                        "title": item.get_name() or f"Chapter {len(chapters) + 1}",
+                        "content": text,
+                        "page_start": page_num,
+                        "page_end": page_num,
+                    }
+                )
                 full_text_parts.append(text)
                 page_num += 1
 

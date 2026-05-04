@@ -4,11 +4,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.core.config import settings
-from app.schemas.ai import SummaryRequest, SummaryResponse, ChatRequest, ChatResponse, ChatMessage
+from app.core.database import get_db
+from app.schemas.ai import ChatMessage, ChatRequest, ChatResponse, SummaryRequest, SummaryResponse
 from app.schemas.reading_session import ReadingChatRequest, ReadingChatResponse, ReadingSessionResponse
-from app.services.ai.base import AIServiceInterface
 from app.services.ai.factory import AIServiceFactory, AIServiceUnavailableError
 from app.services.network_checker import NetworkChecker
 
@@ -63,6 +62,7 @@ async def generate_summary(
     db: Session = Depends(get_db),
 ):
     from app.models import Book
+
     book = db.query(Book).filter(Book.id == request.book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -78,6 +78,7 @@ async def generate_summary(
 
     # Read book content for AI processing
     from app.services.parser.registry import ParserRegistry
+
     parser = ParserRegistry()
     parsed = parser.parse(book.file_path)
 
@@ -130,6 +131,7 @@ async def reading_chat(
             raise HTTPException(status_code=404, detail="Reading session not found")
     else:
         from app.models import Book
+
         book = db.query(Book).filter(Book.id == request.book_id).first()
         if not book:
             raise HTTPException(status_code=404, detail="Book not found")
@@ -144,18 +146,18 @@ async def reading_chat(
 
     # Append user message
     session.messages = session.messages or []
-    session.messages.append({
-        "role": "user",
-        "content": request.message,
-        "timestamp": datetime.utcnow().isoformat(),
-    })
+    session.messages.append(
+        {
+            "role": "user",
+            "content": request.message,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    )
 
     # Build context from passages
     context = None
     if request.context_passages:
-        context = "\n\n".join(
-            p.get("text", str(p)) for p in request.context_passages
-        )
+        context = "\n\n".join(p.get("text", str(p)) for p in request.context_passages)
 
     # Call AI service
     factory = _get_ai_factory()
@@ -170,11 +172,13 @@ async def reading_chat(
     )
 
     # Append assistant reply
-    session.messages.append({
-        "role": "assistant",
-        "content": response_text,
-        "timestamp": datetime.utcnow().isoformat(),
-    })
+    session.messages.append(
+        {
+            "role": "assistant",
+            "content": response_text,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    )
 
     # Update context passages if provided
     if request.context_passages:
@@ -192,6 +196,7 @@ async def list_reading_sessions(
     db: Session = Depends(get_db),
 ):
     from app.models.reading_session import ReadingSession
+
     sessions = db.query(ReadingSession).filter(ReadingSession.book_id == book_id).all()
     return sessions
 
@@ -202,6 +207,7 @@ async def delete_reading_session(
     db: Session = Depends(get_db),
 ):
     from app.models.reading_session import ReadingSession
+
     session = db.query(ReadingSession).filter(ReadingSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Reading session not found")

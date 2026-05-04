@@ -3,8 +3,6 @@
 import csv
 import io
 from datetime import datetime
-from typing import Optional
-from uuid import UUID
 
 from sqlalchemy.orm import Session
 
@@ -89,25 +87,36 @@ def export_cards_csv(db: Session, filters: dict) -> tuple[str, bytes]:
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        "id", "title", "content", "card_type", "tags",
-        "annotation", "source_book_id", "source_passage",
-        "created_at", "updated_at",
-    ])
+    writer.writerow(
+        [
+            "id",
+            "title",
+            "content",
+            "card_type",
+            "tags",
+            "annotation",
+            "source_book_id",
+            "source_passage",
+            "created_at",
+            "updated_at",
+        ]
+    )
 
     for card in cards:
-        writer.writerow([
-            str(card.id),
-            card.title,
-            card.content,
-            card.card_type,
-            ",".join(card.tags) if card.tags else "",
-            card.annotation or "",
-            str(card.source_book_id) if card.source_book_id else "",
-            card.source_passage or "",
-            card.created_at.isoformat() if card.created_at else "",
-            card.updated_at.isoformat() if card.updated_at else "",
-        ])
+        writer.writerow(
+            [
+                str(card.id),
+                card.title,
+                card.content,
+                card.card_type,
+                ",".join(card.tags) if card.tags else "",
+                card.annotation or "",
+                str(card.source_book_id) if card.source_book_id else "",
+                card.source_passage or "",
+                card.created_at.isoformat() if card.created_at else "",
+                card.updated_at.isoformat() if card.updated_at else "",
+            ]
+        )
 
     return "knowledge_cards.csv", output.getvalue().encode("utf-8")
 
@@ -115,17 +124,15 @@ def export_cards_csv(db: Session, filters: dict) -> tuple[str, bytes]:
 def export_cards_pdf(db: Session, filters: dict) -> tuple[str, bytes]:
     """Export knowledge cards as PDF."""
     try:
+        from reportlab.lib.enums import TA_LEFT
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.styles import getSampleStyleSheet
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
         from reportlab.lib.units import cm
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.ttfonts import TTFont
-        from reportlab.lib.enums import TA_LEFT
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
     except ImportError:
-        raise RuntimeError(
-            "reportlab is not installed. Install it with: pip install reportlab"
-        )
+        raise RuntimeError("reportlab is not installed. Install it with: pip install reportlab")
 
     query = db.query(KnowledgeCard)
     query = _apply_card_filters(query, filters)
@@ -141,11 +148,12 @@ def export_cards_pdf(db: Session, filters: dict) -> tuple[str, bytes]:
 
     story.append(Paragraph("Knowledge Cards Export", styles["Title"]))
     story.append(Spacer(1, 0.5 * cm))
-    story.append(Paragraph(
-        f"Exported: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC | "
-        f"Total cards: {len(cards)}",
-        styles["Normal"],
-    ))
+    story.append(
+        Paragraph(
+            f"Exported: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC | Total cards: {len(cards)}",
+            styles["Normal"],
+        )
+    )
     story.append(Spacer(1, 1 * cm))
 
     for card in cards:
@@ -206,26 +214,38 @@ def export_annotations_csv(db: Session, filters: dict) -> tuple[str, bytes]:
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        "id", "book_id", "type", "page_number", "selected_text",
-        "note_content", "color", "highlight_color",
-        "start_cfi", "end_cfi", "created_at",
-    ])
+    writer.writerow(
+        [
+            "id",
+            "book_id",
+            "type",
+            "page_number",
+            "selected_text",
+            "note_content",
+            "color",
+            "highlight_color",
+            "start_cfi",
+            "end_cfi",
+            "created_at",
+        ]
+    )
 
     for ann in annotations:
-        writer.writerow([
-            str(ann.id),
-            str(ann.book_id),
-            ann.type,
-            ann.page_number if ann.page_number is not None else "",
-            ann.selected_text or "",
-            ann.note_content or "",
-            ann.color or "",
-            ann.highlight_color or "",
-            ann.start_cfi or "",
-            ann.end_cfi or "",
-            ann.created_at.isoformat() if ann.created_at else "",
-        ])
+        writer.writerow(
+            [
+                str(ann.id),
+                str(ann.book_id),
+                ann.type,
+                ann.page_number if ann.page_number is not None else "",
+                ann.selected_text or "",
+                ann.note_content or "",
+                ann.color or "",
+                ann.highlight_color or "",
+                ann.start_cfi or "",
+                ann.end_cfi or "",
+                ann.created_at.isoformat() if ann.created_at else "",
+            ]
+        )
 
     return "annotations.csv", output.getvalue().encode("utf-8")
 
@@ -235,13 +255,11 @@ def export_annotations_pdf(db: Session, filters: dict) -> tuple[str, bytes]:
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.styles import getSampleStyleSheet
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
         from reportlab.lib.units import cm
         from reportlab.pdfbase import pdfmetrics
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
     except ImportError:
-        raise RuntimeError(
-            "reportlab is not installed. Install it with: pip install reportlab"
-        )
+        raise RuntimeError("reportlab is not installed. Install it with: pip install reportlab")
 
     query = db.query(Annotation)
     query = _apply_annotation_filters(query, filters)
@@ -256,11 +274,12 @@ def export_annotations_pdf(db: Session, filters: dict) -> tuple[str, bytes]:
 
     story.append(Paragraph("Annotations Export", styles["Title"]))
     story.append(Spacer(1, 0.5 * cm))
-    story.append(Paragraph(
-        f"Exported: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC | "
-        f"Total annotations: {len(annotations)}",
-        styles["Normal"],
-    ))
+    story.append(
+        Paragraph(
+            f"Exported: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC | Total annotations: {len(annotations)}",
+            styles["Normal"],
+        )
+    )
     story.append(Spacer(1, 1 * cm))
 
     for ann in annotations:
@@ -321,25 +340,38 @@ def export_books_csv(db: Session, filters: dict) -> tuple[str, bytes]:
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        "id", "title", "author", "isbn", "publisher", "file_format",
-        "reading_status", "rating", "is_favorite", "summary", "created_at",
-    ])
+    writer.writerow(
+        [
+            "id",
+            "title",
+            "author",
+            "isbn",
+            "publisher",
+            "file_format",
+            "reading_status",
+            "rating",
+            "is_favorite",
+            "summary",
+            "created_at",
+        ]
+    )
 
     for book in books:
-        writer.writerow([
-            str(book.id),
-            book.title,
-            book.author or "",
-            book.isbn or "",
-            book.publisher or "",
-            book.file_format,
-            book.reading_status,
-            book.rating if book.rating is not None else "",
-            "Yes" if book.is_favorite else "No",
-            book.summary or "",
-            book.created_at.isoformat() if book.created_at else "",
-        ])
+        writer.writerow(
+            [
+                str(book.id),
+                book.title,
+                book.author or "",
+                book.isbn or "",
+                book.publisher or "",
+                book.file_format,
+                book.reading_status,
+                book.rating if book.rating is not None else "",
+                "Yes" if book.is_favorite else "No",
+                book.summary or "",
+                book.created_at.isoformat() if book.created_at else "",
+            ]
+        )
 
     return "books.csv", output.getvalue().encode("utf-8")
 
@@ -349,13 +381,11 @@ def export_books_pdf(db: Session, filters: dict) -> tuple[str, bytes]:
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.styles import getSampleStyleSheet
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
         from reportlab.lib.units import cm
         from reportlab.pdfbase import pdfmetrics
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
     except ImportError:
-        raise RuntimeError(
-            "reportlab is not installed. Install it with: pip install reportlab"
-        )
+        raise RuntimeError("reportlab is not installed. Install it with: pip install reportlab")
 
     query = db.query(Book)
     query = _apply_book_filters(query, filters)
@@ -370,11 +400,12 @@ def export_books_pdf(db: Session, filters: dict) -> tuple[str, bytes]:
 
     story.append(Paragraph("Books Export", styles["Title"]))
     story.append(Spacer(1, 0.5 * cm))
-    story.append(Paragraph(
-        f"Exported: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC | "
-        f"Total books: {len(books)}",
-        styles["Normal"],
-    ))
+    story.append(
+        Paragraph(
+            f"Exported: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC | Total books: {len(books)}",
+            styles["Normal"],
+        )
+    )
     story.append(Spacer(1, 1 * cm))
 
     for book in books:
@@ -412,6 +443,7 @@ def _escape_xml(text: str) -> str:
 def _register_chinese_font(pdfmetrics):
     """Try to register a Chinese-capable font. Falls back to Helvetica if unavailable."""
     import os
+
     from reportlab.pdfbase.ttfonts import TTFont
 
     # Common Chinese font paths on different platforms

@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
-from app.schemas.search import SearchQuery, SearchResponse, CrossBookQuery, CrossBookResponse
-from app.services.search.engine import SearchEngine
 from app.api.ai import _get_ai_factory
+from app.core.database import get_db
+from app.schemas.search import CrossBookQuery, CrossBookResponse, SearchQuery, SearchResponse
+from app.services.search.engine import SearchEngine
 
 router = APIRouter()
 
@@ -17,6 +17,7 @@ async def search(
     ai_service = None
     if query.search_type == "semantic":
         from app.services.ai.factory import AIServiceUnavailableError
+
         factory = _get_ai_factory()
         try:
             ai_service, _ = await factory.get_service()
@@ -44,6 +45,7 @@ async def cross_book_query(
     db: Session = Depends(get_db),
 ):
     from app.services.ai.factory import AIServiceUnavailableError
+
     factory = _get_ai_factory()
     try:
         ai_service, _ = await factory.get_service()

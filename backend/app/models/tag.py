@@ -1,10 +1,10 @@
-from sqlalchemy import Column, String, Table, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
 import uuid
 
-from app.core.database import Base
+from sqlalchemy import Column, ForeignKey, String, Table
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
+from app.core.database import Base
 
 book_tags = Table(
     "book_tags",

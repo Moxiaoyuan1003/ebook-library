@@ -1,13 +1,14 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from uuid import UUID
 
 from app.core.database import get_db
 from app.models.annotation import Annotation
 from app.schemas.annotation import (
     AnnotationCreate,
-    AnnotationUpdate,
     AnnotationResponse,
+    AnnotationUpdate,
 )
 
 router = APIRouter()
@@ -19,10 +20,7 @@ def list_annotations(
     db: Session = Depends(get_db),
 ):
     annotations = (
-        db.query(Annotation)
-        .filter(Annotation.book_id == book_id)
-        .order_by(Annotation.created_at.desc())
-        .all()
+        db.query(Annotation).filter(Annotation.book_id == book_id).order_by(Annotation.created_at.desc()).all()
     )
     return [AnnotationResponse.model_validate(a) for a in annotations]
 
@@ -37,9 +35,7 @@ def create_annotation(data: AnnotationCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{annotation_id}", response_model=AnnotationResponse)
-def update_annotation(
-    annotation_id: UUID, data: AnnotationUpdate, db: Session = Depends(get_db)
-):
+def update_annotation(annotation_id: UUID, data: AnnotationUpdate, db: Session = Depends(get_db)):
     annotation = db.query(Annotation).filter(Annotation.id == annotation_id).first()
     if not annotation:
         raise HTTPException(status_code=404, detail="Annotation not found")

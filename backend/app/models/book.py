@@ -1,8 +1,9 @@
-from sqlalchemy import Column, String, Integer, SmallInteger, Boolean, DateTime, Text, BigInteger
+import uuid
+from datetime import datetime
+
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Integer, SmallInteger, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime
-import uuid
 
 from app.core.database import Base
 

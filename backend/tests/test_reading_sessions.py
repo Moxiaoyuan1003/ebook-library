@@ -1,27 +1,22 @@
 import uuid as uuid_mod
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.types import CHAR, TypeDecorator
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
-from app.core.database import get_db, Base
+from app.core.database import Base, get_db
 
 # Import ALL models to register them in Base.metadata
 from app.models.book import Book
-from app.models.tag import Tag, book_tags
-from app.models.bookshelf import Bookshelf, bookshelf_books
-from app.models.passage import Passage
-from app.models.annotation import Annotation
-from app.models.knowledge_card import KnowledgeCard
-from app.models.card_link import CardLink
-from app.models.reading_session import ReadingSession
 
 
 class SQLiteUUID(TypeDecorator):
     """Platform-independent UUID type for SQLite testing."""
+
     impl = CHAR(36)
     cache_ok = True
 
@@ -43,7 +38,7 @@ def _patch_uuid_columns_for_sqlite():
             if isinstance(column.type, PG_UUID):
                 column.type = SQLiteUUID()
             elif isinstance(column.type, CHAR) and not isinstance(column.type, SQLiteUUID):
-                if hasattr(column.type, 'length') and column.type.length == 36:
+                if hasattr(column.type, "length") and column.type.length == 36:
                     column.type = SQLiteUUID()
 
 
@@ -89,6 +84,7 @@ def _use_test_db():
 
 # ── Helper to create a book for session FK ──
 
+
 def _create_book(title="Test Book", author="Author"):
     """Create a book directly in the DB and return its id as string."""
     db = TestSessionLocal()
@@ -110,6 +106,7 @@ def _create_book(title="Test Book", author="Author"):
 
 # ── CRUD Tests ──
 
+
 def test_list_reading_sessions_empty():
     """List sessions for a book with no sessions returns empty list."""
     book_id = _create_book(title="Empty Sessions Book")
@@ -128,10 +125,13 @@ def test_delete_reading_session_not_found():
 def test_reading_chat_no_ai_service():
     """Reading chat returns 503 when no AI service is available (expected in test env)."""
     book_id = _create_book(title="Chat Test Book")
-    resp = client.post("/api/ai/reading-chat", json={
-        "book_id": book_id,
-        "message": "Tell me about this book",
-    })
+    resp = client.post(
+        "/api/ai/reading-chat",
+        json={
+            "book_id": book_id,
+            "message": "Tell me about this book",
+        },
+    )
     # In test environment, no AI service is configured, so we expect 503
     assert resp.status_code == 503
 
@@ -151,12 +151,16 @@ def test_reading_chat_with_mocked_ai(monkeypatch):
 
     # Patch the factory creation
     import app.api.ai as ai_module
+
     monkeypatch.setattr(ai_module, "_get_ai_factory", lambda: MockFactory())
 
-    resp = client.post("/api/ai/reading-chat", json={
-        "book_id": book_id,
-        "message": "What is this book about?",
-    })
+    resp = client.post(
+        "/api/ai/reading-chat",
+        json={
+            "book_id": book_id,
+            "message": "What is this book about?",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert "reply" in data
@@ -177,16 +181,20 @@ def test_reading_chat_with_context_passages(monkeypatch):
             return MockAIService(), "mock"
 
     import app.api.ai as ai_module
+
     monkeypatch.setattr(ai_module, "_get_ai_factory", lambda: MockFactory())
 
-    resp = client.post("/api/ai/reading-chat", json={
-        "book_id": book_id,
-        "message": "Analyze this passage",
-        "context_passages": [
-            {"text": "The quick brown fox jumps over the lazy dog."},
-            {"text": "A second passage for context."},
-        ],
-    })
+    resp = client.post(
+        "/api/ai/reading-chat",
+        json={
+            "book_id": book_id,
+            "message": "Analyze this passage",
+            "context_passages": [
+                {"text": "The quick brown fox jumps over the lazy dog."},
+                {"text": "A second passage for context."},
+            ],
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert "session_id" in data
@@ -210,22 +218,29 @@ def test_reading_chat_continues_session(monkeypatch):
             return MockAIService(), "mock"
 
     import app.api.ai as ai_module
+
     monkeypatch.setattr(ai_module, "_get_ai_factory", lambda: MockFactory())
 
     # First message - creates session
-    resp1 = client.post("/api/ai/reading-chat", json={
-        "book_id": book_id,
-        "message": "Hello",
-    })
+    resp1 = client.post(
+        "/api/ai/reading-chat",
+        json={
+            "book_id": book_id,
+            "message": "Hello",
+        },
+    )
     assert resp1.status_code == 200
     session_id = resp1.json()["session_id"]
 
     # Second message - continues session
-    resp2 = client.post("/api/ai/reading-chat", json={
-        "book_id": book_id,
-        "message": "Follow up question",
-        "session_id": session_id,
-    })
+    resp2 = client.post(
+        "/api/ai/reading-chat",
+        json={
+            "book_id": book_id,
+            "message": "Follow up question",
+            "session_id": session_id,
+        },
+    )
     assert resp2.status_code == 200
     assert resp2.json()["session_id"] == session_id
 
@@ -243,19 +258,26 @@ def test_list_reading_sessions_after_chat(monkeypatch):
             return MockAIService(), "mock"
 
     import app.api.ai as ai_module
+
     monkeypatch.setattr(ai_module, "_get_ai_factory", lambda: MockFactory())
 
     # Create a session via chat
-    client.post("/api/ai/reading-chat", json={
-        "book_id": book_id,
-        "message": "First session",
-    })
+    client.post(
+        "/api/ai/reading-chat",
+        json={
+            "book_id": book_id,
+            "message": "First session",
+        },
+    )
 
     # Create another session
-    client.post("/api/ai/reading-chat", json={
-        "book_id": book_id,
-        "message": "Second session",
-    })
+    client.post(
+        "/api/ai/reading-chat",
+        json={
+            "book_id": book_id,
+            "message": "Second session",
+        },
+    )
 
     # List sessions
     resp = client.get(f"/api/ai/reading-sessions/{book_id}")
@@ -277,13 +299,17 @@ def test_delete_reading_session(monkeypatch):
             return MockAIService(), "mock"
 
     import app.api.ai as ai_module
+
     monkeypatch.setattr(ai_module, "_get_ai_factory", lambda: MockFactory())
 
     # Create a session
-    resp = client.post("/api/ai/reading-chat", json={
-        "book_id": book_id,
-        "message": "To be deleted",
-    })
+    resp = client.post(
+        "/api/ai/reading-chat",
+        json={
+            "book_id": book_id,
+            "message": "To be deleted",
+        },
+    )
     session_id = resp.json()["session_id"]
 
     # Delete it
@@ -309,12 +335,16 @@ def test_reading_chat_with_session_id_not_found(monkeypatch):
             return MockAIService(), "mock"
 
     import app.api.ai as ai_module
+
     monkeypatch.setattr(ai_module, "_get_ai_factory", lambda: MockFactory())
 
     fake_session_id = str(uuid_mod.uuid4())
-    resp = client.post("/api/ai/reading-chat", json={
-        "book_id": book_id,
-        "message": "Hello",
-        "session_id": fake_session_id,
-    })
+    resp = client.post(
+        "/api/ai/reading-chat",
+        json={
+            "book_id": book_id,
+            "message": "Hello",
+            "session_id": fake_session_id,
+        },
+    )
     assert resp.status_code == 404

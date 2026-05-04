@@ -1,10 +1,12 @@
-import pytest
 from uuid import uuid4
+
+import pytest
+
 from app.schemas.search import (
-    CrossBookQuery,
     CrossBookPassage,
-    CrossBookSource,
+    CrossBookQuery,
     CrossBookResponse,
+    CrossBookSource,
 )
 
 

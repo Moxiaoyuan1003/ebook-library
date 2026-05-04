@@ -1,8 +1,8 @@
-import subprocess
-import shutil
 import os
-import time
+import shutil
 import socket
+import subprocess
+import time
 from pathlib import Path
 
 
@@ -55,7 +55,16 @@ class PGManager:
         env["PGDATA"] = str(self.data_dir)
 
         subprocess.run(
-            [pg_ctl, "start", "-D", str(self.data_dir), "-l", str(self.data_dir / "postgresql.log"), "-o", f"-p {self.port}"],
+            [
+                pg_ctl,
+                "start",
+                "-D",
+                str(self.data_dir),
+                "-l",
+                str(self.data_dir / "postgresql.log"),
+                "-o",
+                f"-p {self.port}",
+            ],
             check=True,
             env=env,
             capture_output=True,
@@ -109,7 +118,19 @@ class PGManager:
         env = os.environ.copy()
         env["PGDATA"] = str(self.data_dir)
         subprocess.run(
-            [psql, "-h", "localhost", "-p", str(self.port), "-U", self.user, "-d", db_name, "-c", "CREATE EXTENSION IF NOT EXISTS vector;"],
+            [
+                psql,
+                "-h",
+                "localhost",
+                "-p",
+                str(self.port),
+                "-U",
+                self.user,
+                "-d",
+                db_name,
+                "-c",
+                "CREATE EXTENSION IF NOT EXISTS vector;",
+            ],
             check=True,
             env=env,
             capture_output=True,

@@ -1,5 +1,6 @@
-import fitz  # PyMuPDF
 from pathlib import Path
+
+import fitz  # PyMuPDF
 
 from app.services.parser.base import BaseParser, ParsedBook
 
@@ -18,12 +19,14 @@ class PDFParser(BaseParser):
             text = page.get_text()
             full_text_parts.append(text)
 
-            chapters.append({
-                "title": f"Page {page_num + 1}",
-                "content": text,
-                "page_start": page_num + 1,
-                "page_end": page_num + 1,
-            })
+            chapters.append(
+                {
+                    "title": f"Page {page_num + 1}",
+                    "content": text,
+                    "page_start": page_num + 1,
+                    "page_end": page_num + 1,
+                }
+            )
 
         # Extract metadata
         meta = doc.metadata or {}

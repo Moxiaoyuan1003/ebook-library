@@ -1,26 +1,20 @@
 import uuid as uuid_mod
-import pytest
+
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.types import CHAR, TypeDecorator
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
-from app.core.database import get_db, Base
+from app.core.database import Base, get_db
 
 # Import ALL models to register them in Base.metadata
-from app.models.book import Book
-from app.models.tag import Tag, book_tags
-from app.models.bookshelf import Bookshelf, bookshelf_books
-from app.models.passage import Passage
-from app.models.annotation import Annotation
-from app.models.knowledge_card import KnowledgeCard
-from app.models.card_link import CardLink
 
 
 class SQLiteUUID(TypeDecorator):
     """Platform-independent UUID type for SQLite testing."""
+
     impl = CHAR(36)
     cache_ok = True
 
@@ -42,7 +36,7 @@ def _patch_uuid_columns_for_sqlite():
             if isinstance(column.type, PG_UUID):
                 column.type = SQLiteUUID()
             elif isinstance(column.type, CHAR) and not isinstance(column.type, SQLiteUUID):
-                if hasattr(column.type, 'length') and column.type.length == 36:
+                if hasattr(column.type, "length") and column.type.length == 36:
                     column.type = SQLiteUUID()
 
 
@@ -78,6 +72,7 @@ client = TestClient(app)
 
 # ── Helper to create a card and return its JSON ──
 
+
 def _create_card(title="Test Card", content="Some content", card_type="note", **kwargs):
     payload = {"title": title, "content": content, "card_type": card_type, **kwargs}
     resp = client.post("/api/knowledge-cards/", json=payload)
@@ -87,13 +82,17 @@ def _create_card(title="Test Card", content="Some content", card_type="note", **
 
 # ── CRUD Tests ──
 
+
 def test_create_knowledge_card():
-    resp = client.post("/api/knowledge-cards/", json={
-        "title": "My Card",
-        "content": "Card body here",
-        "card_type": "concept",
-        "tags": ["python", "fastapi"],
-    })
+    resp = client.post(
+        "/api/knowledge-cards/",
+        json={
+            "title": "My Card",
+            "content": "Card body here",
+            "card_type": "concept",
+            "tags": ["python", "fastapi"],
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["title"] == "My Card"
@@ -106,10 +105,13 @@ def test_create_knowledge_card():
 
 
 def test_create_card_defaults():
-    resp = client.post("/api/knowledge-cards/", json={
-        "title": "Defaults",
-        "content": "Body",
-    })
+    resp = client.post(
+        "/api/knowledge-cards/",
+        json={
+            "title": "Defaults",
+            "content": "Body",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["card_type"] == "note"
@@ -173,10 +175,13 @@ def test_list_cards_search():
 
 def test_update_knowledge_card():
     card = _create_card(title="Original", content="Original content")
-    resp = client.put(f"/api/knowledge-cards/{card['id']}", json={
-        "title": "Updated Title",
-        "annotation": "New annotation",
-    })
+    resp = client.put(
+        f"/api/knowledge-cards/{card['id']}",
+        json={
+            "title": "Updated Title",
+            "annotation": "New annotation",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["title"] == "Updated Title"
@@ -209,13 +214,17 @@ def test_delete_card_not_found():
 
 # ── Card Link Tests ──
 
+
 def test_create_card_link():
     card_a = _create_card(title="Card A", content="A")
     card_b = _create_card(title="Card B", content="B")
-    resp = client.post(f"/api/knowledge-cards/{card_a['id']}/links", json={
-        "target_card_id": card_b["id"],
-        "link_type": "related",
-    })
+    resp = client.post(
+        f"/api/knowledge-cards/{card_a['id']}/links",
+        json={
+            "target_card_id": card_b["id"],
+            "link_type": "related",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["source_card_id"] == card_a["id"]
@@ -226,9 +235,12 @@ def test_create_card_link():
 def test_create_link_default_type():
     card_a = _create_card(title="Src", content="S")
     card_b = _create_card(title="Tgt", content="T")
-    resp = client.post(f"/api/knowledge-cards/{card_a['id']}/links", json={
-        "target_card_id": card_b["id"],
-    })
+    resp = client.post(
+        f"/api/knowledge-cards/{card_a['id']}/links",
+        json={
+            "target_card_id": card_b["id"],
+        },
+    )
     assert resp.status_code == 200
     assert resp.json()["link_type"] == "related"
 
@@ -236,18 +248,24 @@ def test_create_link_default_type():
 def test_create_link_source_not_found():
     fake_id = str(uuid_mod.uuid4())
     card_b = _create_card(title="Real", content="R")
-    resp = client.post(f"/api/knowledge-cards/{fake_id}/links", json={
-        "target_card_id": card_b["id"],
-    })
+    resp = client.post(
+        f"/api/knowledge-cards/{fake_id}/links",
+        json={
+            "target_card_id": card_b["id"],
+        },
+    )
     assert resp.status_code == 404
 
 
 def test_create_link_target_not_found():
     card_a = _create_card(title="Real", content="R")
     fake_id = str(uuid_mod.uuid4())
-    resp = client.post(f"/api/knowledge-cards/{card_a['id']}/links", json={
-        "target_card_id": fake_id,
-    })
+    resp = client.post(
+        f"/api/knowledge-cards/{card_a['id']}/links",
+        json={
+            "target_card_id": fake_id,
+        },
+    )
     assert resp.status_code == 404
 
 
@@ -256,12 +274,18 @@ def test_list_card_links():
     card_b = _create_card(title="B", content="B")
     card_c = _create_card(title="C", content="C")
     # Create links: A->B, A->C
-    client.post(f"/api/knowledge-cards/{card_a['id']}/links", json={
-        "target_card_id": card_b["id"],
-    })
-    client.post(f"/api/knowledge-cards/{card_a['id']}/links", json={
-        "target_card_id": card_c["id"],
-    })
+    client.post(
+        f"/api/knowledge-cards/{card_a['id']}/links",
+        json={
+            "target_card_id": card_b["id"],
+        },
+    )
+    client.post(
+        f"/api/knowledge-cards/{card_a['id']}/links",
+        json={
+            "target_card_id": card_c["id"],
+        },
+    )
     resp = client.get(f"/api/knowledge-cards/{card_a['id']}/links")
     assert resp.status_code == 200
     data = resp.json()
@@ -277,9 +301,12 @@ def test_list_links_not_found():
 def test_delete_card_link():
     card_a = _create_card(title="DA", content="DA")
     card_b = _create_card(title="DB", content="DB")
-    link_resp = client.post(f"/api/knowledge-cards/{card_a['id']}/links", json={
-        "target_card_id": card_b["id"],
-    })
+    link_resp = client.post(
+        f"/api/knowledge-cards/{card_a['id']}/links",
+        json={
+            "target_card_id": card_b["id"],
+        },
+    )
     link_id = link_resp.json()["id"]
     resp = client.delete(f"/api/knowledge-cards/links/{link_id}")
     assert resp.status_code == 200
@@ -299,9 +326,12 @@ def test_delete_card_cascades_links():
     """Deleting a card should remove its associated links."""
     card_a = _create_card(title="Cascade A", content="A")
     card_b = _create_card(title="Cascade B", content="B")
-    client.post(f"/api/knowledge-cards/{card_a['id']}/links", json={
-        "target_card_id": card_b["id"],
-    })
+    client.post(
+        f"/api/knowledge-cards/{card_a['id']}/links",
+        json={
+            "target_card_id": card_b["id"],
+        },
+    )
     # Delete card_a — its links should be cleaned up
     client.delete(f"/api/knowledge-cards/{card_a['id']}")
     # card_b should still exist, but have no links

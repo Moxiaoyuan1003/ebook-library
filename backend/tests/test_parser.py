@@ -1,5 +1,4 @@
-import pytest
-from app.services.parser.base import ParsedBook, BaseParser
+from app.services.parser.base import ParsedBook
 from app.services.parser.registry import ParserRegistry
 
 

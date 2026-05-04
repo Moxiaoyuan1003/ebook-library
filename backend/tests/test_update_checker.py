@@ -1,11 +1,11 @@
 """Tests for the update checker service and system API endpoint."""
-from unittest.mock import AsyncMock, patch, MagicMock
 
-import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
+import pytest
 
-from app.services.update_checker import check_for_update, _compare_versions
-
+from app.services.update_checker import _compare_versions, check_for_update
 
 # ---------------------------------------------------------------------------
 # _compare_versions unit tests
@@ -200,7 +200,8 @@ class TestUpdateCheckEndpoint:
     @pytest.mark.asyncio
     async def test_endpoint_returns_update_info(self):
         """The endpoint returns the same shape as check_for_update."""
-        from httpx import AsyncClient, ASGITransport
+        from httpx import ASGITransport, AsyncClient
+
         from app.main import app
 
         mock_response = MagicMock()

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import books, tags, bookshelves, search, ai, annotations, ws, knowledge_cards, system, export
+from app.api import ai, annotations, books, bookshelves, export, knowledge_cards, search, system, tags, ws
 from app.core.config import settings
 
 app = FastAPI(

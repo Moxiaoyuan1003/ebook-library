@@ -1,26 +1,28 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from uuid import UUID
-from typing import Optional
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.knowledge_card import KnowledgeCard
 from app.models.card_link import CardLink
+from app.models.knowledge_card import KnowledgeCard
 from app.schemas.knowledge_card import (
-    KnowledgeCardCreate,
-    KnowledgeCardUpdate,
-    KnowledgeCardResponse,
-    KnowledgeCardListResponse,
     CardLinkResponse,
+    KnowledgeCardCreate,
+    KnowledgeCardListResponse,
+    KnowledgeCardResponse,
+    KnowledgeCardUpdate,
 )
 
 
 class CardLinkBody(BaseModel):
     """Request body for creating a link (source comes from URL path)."""
+
     target_card_id: UUID
-    link_type: Optional[str] = Field("related", max_length=30)
+    link_type: str | None = Field("related", max_length=30)
+
 
 router = APIRouter()
 
@@ -48,12 +50,7 @@ def list_knowledge_cards(
         )
 
     total = query.count()
-    items = (
-        query.order_by(KnowledgeCard.updated_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-        .all()
-    )
+    items = query.order_by(KnowledgeCard.updated_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
 
     return KnowledgeCardListResponse(
         items=[KnowledgeCardResponse.model_validate(c) for c in items],
@@ -81,9 +78,7 @@ def create_knowledge_card(data: KnowledgeCardCreate, db: Session = Depends(get_d
 
 
 @router.put("/{card_id}", response_model=KnowledgeCardResponse)
-def update_knowledge_card(
-    card_id: UUID, data: KnowledgeCardUpdate, db: Session = Depends(get_db)
-):
+def update_knowledge_card(card_id: UUID, data: KnowledgeCardUpdate, db: Session = Depends(get_db)):
     card = db.query(KnowledgeCard).filter(KnowledgeCard.id == card_id).first()
     if not card:
         raise HTTPException(status_code=404, detail="Knowledge card not found")
@@ -115,17 +110,13 @@ def delete_knowledge_card(card_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/{card_id}/links", response_model=CardLinkResponse)
-def create_card_link(
-    card_id: UUID, data: CardLinkBody, db: Session = Depends(get_db)
-):
+def create_card_link(card_id: UUID, data: CardLinkBody, db: Session = Depends(get_db)):
     # Verify source card exists
     source = db.query(KnowledgeCard).filter(KnowledgeCard.id == card_id).first()
     if not source:
         raise HTTPException(status_code=404, detail="Source card not found")
     # Verify target card exists
-    target = db.query(KnowledgeCard).filter(
-        KnowledgeCard.id == data.target_card_id
-    ).first()
+    target = db.query(KnowledgeCard).filter(KnowledgeCard.id == data.target_card_id).first()
     if not target:
         raise HTTPException(status_code=404, detail="Target card not found")
 

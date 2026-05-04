@@ -1,10 +1,11 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from uuid import UUID
 
 from app.core.database import get_db
 from app.models import Bookshelf
-from app.schemas.bookshelf import BookshelfCreate, BookshelfUpdate, BookshelfResponse
+from app.schemas.bookshelf import BookshelfCreate, BookshelfResponse, BookshelfUpdate
 
 router = APIRouter()
 
@@ -52,6 +53,7 @@ def add_book_to_shelf(shelf_id: UUID, book_id: UUID, db: Session = Depends(get_d
     if not shelf:
         raise HTTPException(status_code=404, detail="Bookshelf not found")
     from app.models import Book
+
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -66,6 +68,7 @@ def remove_book_from_shelf(shelf_id: UUID, book_id: UUID, db: Session = Depends(
     if not shelf:
         raise HTTPException(status_code=404, detail="Bookshelf not found")
     from app.models import Book
+
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")

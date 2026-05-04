@@ -1,26 +1,22 @@
 import uuid as uuid_mod
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.types import CHAR, TypeDecorator
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
-from app.core.database import get_db, Base
+from app.core.database import Base, get_db
 
 # Import ALL models to register them in Base.metadata
 from app.models.book import Book
-from app.models.tag import Tag, book_tags
-from app.models.bookshelf import Bookshelf, bookshelf_books
-from app.models.passage import Passage
-from app.models.annotation import Annotation
-from app.models.knowledge_card import KnowledgeCard
-from app.models.card_link import CardLink
 
 
 class SQLiteUUID(TypeDecorator):
     """Platform-independent UUID type for SQLite testing."""
+
     impl = CHAR(36)
     cache_ok = True
 
@@ -42,7 +38,7 @@ def _patch_uuid_columns_for_sqlite():
             if isinstance(column.type, PG_UUID):
                 column.type = SQLiteUUID()
             elif isinstance(column.type, CHAR) and not isinstance(column.type, SQLiteUUID):
-                if hasattr(column.type, 'length') and column.type.length == 36:
+                if hasattr(column.type, "length") and column.type.length == 36:
                     column.type = SQLiteUUID()
 
 
@@ -88,6 +84,7 @@ def _use_test_db():
 
 # ── Helper to create a book for annotation FK ──
 
+
 def _create_book(title="Test Book", author="Author"):
     """Create a book directly in the DB and return its id as string."""
     db = TestSessionLocal()
@@ -109,6 +106,7 @@ def _create_book(title="Test Book", author="Author"):
 
 # ── Helper to create an annotation ──
 
+
 def _create_annotation(book_id, type="highlight", selected_text="Some text", **kwargs):
     payload = {
         "book_id": book_id,
@@ -123,18 +121,22 @@ def _create_annotation(book_id, type="highlight", selected_text="Some text", **k
 
 # ── CRUD Tests ──
 
+
 def test_create_annotation():
     book_id = _create_book()
-    resp = client.post("/api/annotations/", json={
-        "book_id": book_id,
-        "type": "highlight",
-        "selected_text": "Important passage here",
-        "color": "#ffeb3b",
-        "highlight_color": "yellow",
-        "page_number": 42,
-        "start_cfi": "epubcfi(/6/14[chap05]!/4/2/1:0)",
-        "end_cfi": "epubcfi(/6/14[chap05]!/4/2/1:30)",
-    })
+    resp = client.post(
+        "/api/annotations/",
+        json={
+            "book_id": book_id,
+            "type": "highlight",
+            "selected_text": "Important passage here",
+            "color": "#ffeb3b",
+            "highlight_color": "yellow",
+            "page_number": 42,
+            "start_cfi": "epubcfi(/6/14[chap05]!/4/2/1:0)",
+            "end_cfi": "epubcfi(/6/14[chap05]!/4/2/1:30)",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["book_id"] == book_id
@@ -151,10 +153,13 @@ def test_create_annotation():
 
 def test_create_annotation_minimal():
     book_id = _create_book()
-    resp = client.post("/api/annotations/", json={
-        "book_id": book_id,
-        "type": "bookmark",
-    })
+    resp = client.post(
+        "/api/annotations/",
+        json={
+            "book_id": book_id,
+            "type": "bookmark",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["type"] == "bookmark"
@@ -165,12 +170,15 @@ def test_create_annotation_minimal():
 def test_create_annotation_with_rect_data():
     book_id = _create_book()
     rect_json = '[{"x":10,"y":20,"w":300,"h":20,"page":1}]'
-    resp = client.post("/api/annotations/", json={
-        "book_id": book_id,
-        "type": "highlight",
-        "selected_text": "PDF text",
-        "rect_data": rect_json,
-    })
+    resp = client.post(
+        "/api/annotations/",
+        json={
+            "book_id": book_id,
+            "type": "highlight",
+            "selected_text": "PDF text",
+            "rect_data": rect_json,
+        },
+    )
     assert resp.status_code == 200
     assert resp.json()["rect_data"] == rect_json
 
@@ -205,9 +213,12 @@ def test_update_annotation_note():
     book_id = _create_book()
     ann = _create_annotation(book_id, type="note", note_content="Original note")
 
-    resp = client.put(f"/api/annotations/{ann['id']}", json={
-        "note_content": "Updated note content",
-    })
+    resp = client.put(
+        f"/api/annotations/{ann['id']}",
+        json={
+            "note_content": "Updated note content",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["note_content"] == "Updated note content"
@@ -220,9 +231,12 @@ def test_update_annotation_highlight_color():
     book_id = _create_book()
     ann = _create_annotation(book_id, type="highlight", highlight_color="yellow")
 
-    resp = client.put(f"/api/annotations/{ann['id']}", json={
-        "highlight_color": "blue",
-    })
+    resp = client.put(
+        f"/api/annotations/{ann['id']}",
+        json={
+            "highlight_color": "blue",
+        },
+    )
     assert resp.status_code == 200
     assert resp.json()["highlight_color"] == "blue"
 
@@ -231,9 +245,12 @@ def test_update_annotation_color():
     book_id = _create_book()
     ann = _create_annotation(book_id, type="highlight", color="#ffeb3b")
 
-    resp = client.put(f"/api/annotations/{ann['id']}", json={
-        "color": "#4caf50",
-    })
+    resp = client.put(
+        f"/api/annotations/{ann['id']}",
+        json={
+            "color": "#4caf50",
+        },
+    )
     assert resp.status_code == 200
     assert resp.json()["color"] == "#4caf50"
 

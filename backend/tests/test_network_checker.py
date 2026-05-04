@@ -1,14 +1,13 @@
 """Tests for NetworkChecker and AIServiceFactory."""
-import asyncio
-from unittest.mock import AsyncMock, patch, MagicMock
 
-import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
+import pytest
 
-from app.services.network_checker import NetworkChecker
-from app.services.ai.factory import AIServiceFactory, AIServiceUnavailableError
 from app.services.ai.base import AIServiceInterface
-
+from app.services.ai.factory import AIServiceFactory, AIServiceUnavailableError
+from app.services.network_checker import NetworkChecker
 
 # ---------------------------------------------------------------------------
 # NetworkChecker tests
@@ -137,6 +136,7 @@ class TestNetworkChecker:
 
 class FakeSettings:
     """Minimal settings object for testing."""
+
     AI_PROVIDER = "openai"
     OPENAI_API_KEY = "test-key"
     OPENAI_BASE_URL = "https://api.openai.com/v1"

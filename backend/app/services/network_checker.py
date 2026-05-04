@@ -1,4 +1,5 @@
 """Network availability checker with caching."""
+
 import time
 
 import httpx

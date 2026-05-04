@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import Optional
 from uuid import UUID
+
+from pydantic import BaseModel, Field
 
 
 class SearchQuery(BaseModel):
@@ -12,8 +12,8 @@ class SearchQuery(BaseModel):
 class SearchResult(BaseModel):
     book_id: UUID
     book_title: str
-    chapter: Optional[str]
-    page_number: Optional[int]
+    chapter: str | None
+    page_number: int | None
     content: str
     score: float
 
@@ -31,7 +31,7 @@ class CrossBookQuery(BaseModel):
 
 
 class CrossBookPassage(BaseModel):
-    page_number: Optional[int] = None
+    page_number: int | None = None
     content: str
     score: float
 

@@ -1,4 +1,3 @@
-from typing import Optional
 import httpx
 
 from app.services.ai.base import AIServiceInterface
@@ -57,7 +56,7 @@ class OllamaAdapter(AIServiceInterface):
     async def chat(
         self,
         messages: list[dict],
-        context: Optional[str] = None,
+        context: str | None = None,
         max_tokens: int = 1000,
     ) -> str:
         system_msg = "你是一个专业的图书助手，可以帮助用户理解和分析图书内容。"

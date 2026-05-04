@@ -1,10 +1,11 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from uuid import UUID
 
 from app.core.database import get_db
 from app.models import Tag
-from app.schemas.tag import TagCreate, TagUpdate, TagResponse
+from app.schemas.tag import TagCreate, TagResponse, TagUpdate
 
 router = APIRouter()
 

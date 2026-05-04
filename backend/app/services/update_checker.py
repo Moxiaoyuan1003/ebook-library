@@ -1,4 +1,5 @@
 """GitHub Release version checker service."""
+
 import httpx
 
 from app.core.config import settings

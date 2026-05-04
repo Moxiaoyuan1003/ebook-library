@@ -1,26 +1,20 @@
 import uuid as uuid_mod
-import sqlite3
-import pytest
+
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.types import CHAR, TypeDecorator
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
-from app.core.database import get_db, Base
+from app.core.database import Base, get_db
 
 # Import models to register them in Base.metadata
-from app.models.book import Book
-from app.models.tag import Tag, book_tags
-from app.models.bookshelf import Bookshelf, bookshelf_books
-from app.models.passage import Passage
-from app.models.annotation import Annotation
-from app.models.knowledge_card import KnowledgeCard
 
 
 class SQLiteUUID(TypeDecorator):
     """Platform-independent UUID type for SQLite testing."""
+
     impl = CHAR(36)
     cache_ok = True
 
@@ -43,7 +37,7 @@ def _patch_uuid_columns_for_sqlite():
                 column.type = SQLiteUUID()
             elif isinstance(column.type, CHAR) and not isinstance(column.type, SQLiteUUID):
                 # Check if this looks like a UUID column (CHAR(36) already patched by another module)
-                if hasattr(column.type, 'length') and column.type.length == 36:
+                if hasattr(column.type, "length") and column.type.length == 36:
                     column.type = SQLiteUUID()
 
 
@@ -119,6 +113,7 @@ def test_delete_tag():
 
 def test_update_tag_not_found():
     import uuid
+
     fake_id = str(uuid.uuid4())
     response = client.put(f"/api/tags/{fake_id}", json={"name": "NotFound"})
     assert response.status_code == 404
@@ -126,6 +121,7 @@ def test_update_tag_not_found():
 
 def test_delete_tag_not_found():
     import uuid
+
     fake_id = str(uuid.uuid4())
     response = client.delete(f"/api/tags/{fake_id}")
     assert response.status_code == 404

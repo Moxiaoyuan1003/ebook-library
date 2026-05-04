@@ -1,4 +1,5 @@
 """System-level API endpoints (health, update check, etc.)."""
+
 from fastapi import APIRouter
 
 from app.services.update_checker import check_for_update

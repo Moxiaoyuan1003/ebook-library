@@ -1,10 +1,10 @@
-from sqlalchemy import Column, String, Text, Integer, Table, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
 import uuid
 
-from app.core.database import Base
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
+from app.core.database import Base
 
 bookshelf_books = Table(
     "bookshelf_books",

@@ -1,14 +1,14 @@
-from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
+
+from pydantic import BaseModel
 
 
 class ReadingChatRequest(BaseModel):
     book_id: UUID
     message: str
     context_passages: list[dict] = []
-    session_id: Optional[UUID] = None
+    session_id: UUID | None = None
 
 
 class ReadingChatResponse(BaseModel):

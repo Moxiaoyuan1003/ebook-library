@@ -1,9 +1,8 @@
-import pytest
-from app.schemas.book import BookCreate, BookUpdate, BookResponse
-from app.schemas.tag import TagCreate, TagResponse
-from app.schemas.bookshelf import BookshelfCreate, BookshelfResponse
-from app.schemas.search import SearchQuery, SearchResponse
-from app.schemas.ai import SummaryRequest, SummaryResponse
+from app.schemas.ai import SummaryRequest
+from app.schemas.book import BookCreate, BookUpdate
+from app.schemas.bookshelf import BookshelfCreate
+from app.schemas.search import SearchQuery
+from app.schemas.tag import TagCreate
 
 
 def test_book_create_schema():

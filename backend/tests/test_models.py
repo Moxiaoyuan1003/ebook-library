@@ -1,5 +1,4 @@
-import pytest
-from app.models import Book, Tag, Bookshelf, Passage, Annotation, KnowledgeCard
+from app.models import Annotation, Book, Bookshelf, KnowledgeCard, Passage, Tag
 from app.models.card_link import CardLink
 from app.models.reading_progress import ReadingProgress
 

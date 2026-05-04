@@ -1,37 +1,37 @@
-from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
+
+from pydantic import BaseModel, Field
 
 
 class KnowledgeCardCreate(BaseModel):
     title: str = Field(..., max_length=300)
     content: str
-    source_book_id: Optional[UUID] = None
-    source_passage: Optional[str] = None
-    annotation: Optional[str] = None
-    card_type: Optional[str] = Field("note", max_length=30)
-    tags: Optional[list[str]] = None
+    source_book_id: UUID | None = None
+    source_passage: str | None = None
+    annotation: str | None = None
+    card_type: str | None = Field("note", max_length=30)
+    tags: list[str] | None = None
 
 
 class KnowledgeCardUpdate(BaseModel):
-    title: Optional[str] = Field(None, max_length=300)
-    content: Optional[str] = None
-    source_passage: Optional[str] = None
-    annotation: Optional[str] = None
-    card_type: Optional[str] = Field(None, max_length=30)
-    tags: Optional[list[str]] = None
+    title: str | None = Field(None, max_length=300)
+    content: str | None = None
+    source_passage: str | None = None
+    annotation: str | None = None
+    card_type: str | None = Field(None, max_length=30)
+    tags: list[str] | None = None
 
 
 class KnowledgeCardResponse(BaseModel):
     id: UUID
     title: str
     content: str
-    source_book_id: Optional[UUID]
-    source_passage: Optional[str]
-    annotation: Optional[str]
+    source_book_id: UUID | None
+    source_passage: str | None
+    annotation: str | None
     card_type: str
-    tags: Optional[list[str]]
+    tags: list[str] | None
     created_at: datetime
     updated_at: datetime
 
@@ -42,7 +42,7 @@ class KnowledgeCardResponse(BaseModel):
 class CardLinkCreate(BaseModel):
     source_card_id: UUID
     target_card_id: UUID
-    link_type: Optional[str] = Field("related", max_length=30)
+    link_type: str | None = Field("related", max_length=30)
 
 
 class CardLinkResponse(BaseModel):

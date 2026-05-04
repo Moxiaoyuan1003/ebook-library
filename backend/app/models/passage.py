@@ -1,9 +1,10 @@
-from sqlalchemy import Column, String, Integer, Text, DateTime, ForeignKey
+import uuid
+from datetime import datetime
+
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from pgvector.sqlalchemy import Vector
-from datetime import datetime
-import uuid
 
 from app.core.database import Base
 

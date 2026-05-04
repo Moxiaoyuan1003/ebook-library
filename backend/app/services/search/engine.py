@@ -1,10 +1,9 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-from typing import Optional
 from uuid import UUID
 
+from sqlalchemy.orm import Session
+
 from app.models import Book, Passage
-from app.schemas.search import SearchResult, CrossBookSource, CrossBookPassage
+from app.schemas.search import CrossBookPassage, CrossBookSource, SearchResult
 
 
 class SearchEngine:
@@ -28,11 +27,7 @@ class SearchEngine:
         """PostgreSQL full-text search on book titles and authors."""
         results = (
             self.db.query(Book)
-            .filter(
-                Book.title.ilike(f"%{query}%")
-                | Book.author.ilike(f"%{query}%")
-                | Book.isbn.ilike(f"%{query}%")
-            )
+            .filter(Book.title.ilike(f"%{query}%") | Book.author.ilike(f"%{query}%") | Book.isbn.ilike(f"%{query}%"))
             .limit(top_k)
             .all()
         )
@@ -57,12 +52,7 @@ class SearchEngine:
         query_embedding = await self.ai_service.get_embedding(query)
 
         # Use pgvector cosine similarity
-        results = (
-            self.db.query(Passage)
-            .order_by(Passage.embedding.cosine_distance(query_embedding))
-            .limit(top_k)
-            .all()
-        )
+        results = self.db.query(Passage).order_by(Passage.embedding.cosine_distance(query_embedding)).limit(top_k).all()
 
         search_results = []
         for passage in results:
@@ -94,7 +84,7 @@ class SearchEngine:
         overlap = 200
         chunks = []
         for i in range(0, len(full_text), chunk_size - overlap):
-            chunk = full_text[i:i + chunk_size]
+            chunk = full_text[i : i + chunk_size]
             if chunk.strip():
                 chunks.append(chunk)
 
@@ -141,6 +131,7 @@ class SearchEngine:
 
         # Group by book_id, keep top 3 passages per book
         from collections import defaultdict
+
         book_passages: dict[UUID, list[SearchResult]] = defaultdict(list)
         for result in results:
             if len(book_passages[result.book_id]) < 3:
@@ -170,9 +161,7 @@ class SearchEngine:
         for source in sources:
             for passage in source.passages:
                 page_info = f", Page {passage.page_number}" if passage.page_number else ""
-                context_parts.append(
-                    f"[{source.book_title}{page_info}]: {passage.content}"
-                )
+                context_parts.append(f"[{source.book_title}{page_info}]: {passage.content}")
         context = "\n\n".join(context_parts)
 
         # Get AI-synthesized answer

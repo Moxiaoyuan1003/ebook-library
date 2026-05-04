@@ -1,8 +1,9 @@
-from sqlalchemy import Column, String, Integer, Text, DateTime, ForeignKey
+import uuid
+from datetime import datetime
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime
-import uuid
 
 from app.core.database import Base
 
@@ -19,7 +20,7 @@ class Annotation(Base):
     color = Column(String(7), default="#ffeb3b")
     highlight_color = Column(String(20), default="yellow")  # yellow/green/blue/pink/purple
     start_cfi = Column(Text)  # EPUB start CFI
-    end_cfi = Column(Text)    # EPUB end CFI
+    end_cfi = Column(Text)  # EPUB end CFI
     rect_data = Column(Text)  # JSON string for PDF highlight rectangles
     created_at = Column(DateTime, default=datetime.utcnow)
 

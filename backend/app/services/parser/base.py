@@ -1,16 +1,16 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
 class ParsedBook:
     """Unified result from all parsers."""
+
     metadata: dict = field(default_factory=dict)
     chapters: list[dict] = field(default_factory=list)
     full_text: str = ""
     page_count: int = 0
-    cover_image: Optional[bytes] = None
+    cover_image: bytes | None = None
 
 
 class BaseParser(ABC):
