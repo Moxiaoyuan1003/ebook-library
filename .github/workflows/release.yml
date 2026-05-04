@@ -11,6 +11,7 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -32,14 +33,24 @@ jobs:
           python-version: "3.11"
 
       - name: Install backend dependencies
+        working-directory: backend
         run: |
-          cd backend
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Build backend with PyInstaller
+        working-directory: backend
+        run: pyinstaller backend.spec --clean --noconfirm
+
+      - name: Verify backend binary exists
+        shell: bash
         run: |
-          cd backend
-          pyinstaller backend.spec --clean --noconfirm
+          if [ "${{ matrix.platform }}" = "win" ]; then
+            test -f backend/dist/backend.exe
+          else
+            test -f backend/dist/backend
+          fi
+          echo "Backend binary OK"
 
       # ── Frontend ──
       - name: Setup Node.js
@@ -50,14 +61,18 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci
+        working-directory: frontend
+        run: npm ci
 
       - name: Build Electron app
-        run: |
-          cd frontend
-          npm run electron:build:${{ matrix.platform }}
+        working-directory: frontend
+        env:
+          # Skip code signing in CI (no certificates configured)
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          # Allow building without code signing on macOS
+          CSC_LINK: ""
+          CSC_KEY_PASSWORD: ""
+        run: npm run electron:build:${{ matrix.platform }}
 
       # ── Publish ──
       - name: Upload release assets
