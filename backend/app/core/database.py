@@ -8,7 +8,6 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import settings
 
-
 # Allow SQLite to bind Python UUID objects as strings
 sqlite3.register_adapter(uuid.UUID, str)
 
