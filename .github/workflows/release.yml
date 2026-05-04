@@ -69,9 +69,6 @@ jobs:
         env:
           # Skip code signing in CI (no certificates configured)
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          # Allow building without code signing on macOS
-          CSC_LINK: ""
-          CSC_KEY_PASSWORD: ""
         run: npm run electron:build:${{ matrix.platform }}
 
       # ── Publish ──
