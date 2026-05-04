@@ -21,7 +21,7 @@ win:
     - target: portable
       arch:
         - x64
-  icon: build/icon.ico
+  icon: resources/icon.png
 
 mac:
   target:
@@ -33,7 +33,7 @@ mac:
       arch:
         - x64
         - arm64
-  icon: build/icon.icns
+  icon: resources/icon.png
 
 linux:
   target:
@@ -43,7 +43,7 @@ linux:
     - target: deb
       arch:
         - x64
-  icon: build/icon.png
+  icon: resources/icon.png
 
 publish:
   provider: github
