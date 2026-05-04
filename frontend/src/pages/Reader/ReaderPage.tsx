@@ -5,10 +5,12 @@ import { Button, Drawer, List, Spin, message, Space, InputNumber, Tag } from 'an
 import { ArrowLeftOutlined, BookOutlined, StarOutlined, LeftOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined } from '@ant-design/icons';
 import { bookApi, Book } from '../../services/bookApi';
 import PdfViewer from '../../components/PdfViewer';
+import EpubViewer from '../../components/EpubViewer';
 
 interface TocItem {
   title: string;
   pageNumber: number;
+  href?: string;
   items?: TocItem[];
 }
 
@@ -127,10 +129,16 @@ export default function ReaderPage() {
             initialPage={currentPage}
           />
         ) : book.file_format === 'epub' ? (
-          <div style={{ textAlign: 'center', color: '#888', padding: 48 }}>
-            <p>EPUB 阅读器将在后续任务中实现</p>
-            <p>文件路径: {book.file_path}</p>
-          </div>
+          <EpubViewer
+            filePath={book.file_path}
+            onLocationChange={(cfi, progress) => {
+              if (bookId) {
+                bookApi.updateProgress(bookId, { current_cfi: cfi, progress_percent: progress }).catch(() => {});
+              }
+            }}
+            onTocLoad={setToc}
+            initialCfi={undefined}
+          />
         ) : (
           <div style={{ textAlign: 'center', color: '#888', padding: 48 }}>
             <p>暂不支持此格式的阅读</p>
@@ -145,7 +153,14 @@ export default function ReaderPage() {
           renderItem={(item: TocItem) => (
             <List.Item
               style={{ cursor: 'pointer', padding: '8px 0' }}
-              onClick={() => { goToPage(item.pageNumber); setShowToc(false); }}
+              onClick={() => {
+                if (book?.file_format === 'epub') {
+                  (window as any).__epubViewer?.goToHref(item.href);
+                } else {
+                  goToPage(item.pageNumber);
+                }
+                setShowToc(false);
+              }}
             >
               <span style={{ fontSize: 13 }}>{item.title}</span>
               <span style={{ color: '#888', fontSize: 11, marginLeft: 'auto' }}>P.{item.pageNumber}</span>
