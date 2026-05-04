@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -16,6 +16,9 @@ class KnowledgeCard(Base):
     source_book_id = Column(UUID(as_uuid=True), ForeignKey("books.id"))
     source_passage = Column(Text)
     annotation = Column(Text)
+    card_type = Column(String(30), default="note")
+    tags = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     book = relationship("Book", foreign_keys=[source_book_id])

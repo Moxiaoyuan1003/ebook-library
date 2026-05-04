@@ -25,6 +25,9 @@ class Book(Base):
     rating = Column(SmallInteger)
     is_favorite = Column(Boolean, default=False, index=True)
     summary = Column(Text)
+    metadata_enriched = Column(Boolean, default=False)
+    metadata_source = Column(String(20), default="file")
+    open_library_id = Column(String(50))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

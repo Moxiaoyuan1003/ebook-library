@@ -42,6 +42,9 @@ class BookResponse(BaseModel):
     rating: Optional[int]
     is_favorite: bool
     summary: Optional[str]
+    metadata_enriched: bool
+    metadata_source: str
+    open_library_id: Optional[str]
     created_at: datetime
     updated_at: datetime
 

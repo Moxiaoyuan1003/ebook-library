@@ -1,9 +1,14 @@
 import pytest
+import sqlite3
+import uuid
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import CHAR
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from app.core.database import Base
+
+# Allow SQLite to bind Python UUID objects as strings
+sqlite3.register_adapter(uuid.UUID, str)
 
 # Import models to register them in Base.metadata
 import app.models  # noqa: F401
