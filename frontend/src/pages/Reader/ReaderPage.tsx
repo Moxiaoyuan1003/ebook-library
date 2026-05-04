@@ -34,39 +34,43 @@ export default function ReaderPage() {
   const epubRef = useRef<EpubViewerRef>(null);
 
   useEffect(() => {
-    if (bookId) {
-      loadBook(bookId);
-      loadProgress(bookId);
-    }
-  }, [bookId]);
+    if (!bookId) return;
 
-  const loadBook = async (id: string) => {
-    try {
-      const response = await bookApi.get(id);
-      setBook(response.data);
-    } catch (error) {
-      message.error('加载图书失败');
-      navigate('/');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadProgress = async (id: string) => {
-    try {
-      const response = await bookApi.getProgress(id);
-      if (response.data.current_page > 0) {
-        setCurrentPage(response.data.current_page);
+    const load = async () => {
+      try {
+        const response = await bookApi.get(bookId);
+        setBook(response.data);
+      } catch (error) {
+        message.error('加载图书失败');
+        navigate('/');
+      } finally {
+        setLoading(false);
       }
-    } catch {}
-  };
+    };
+
+    const loadProg = async () => {
+      try {
+        const response = await bookApi.getProgress(bookId);
+        if (response.data.current_page > 0) {
+          setCurrentPage(response.data.current_page);
+        }
+      } catch (err) {
+        console.warn('Failed to load reading progress:', err);
+      }
+    };
+
+    load();
+    loadProg();
+  }, [bookId, navigate]);
 
   const saveProgress = async (page: number) => {
     if (!bookId) return;
     try {
       const percent = totalPages > 0 ? Math.round((page / totalPages) * 100) : 0;
       await bookApi.updateProgress(bookId, { current_page: page, progress_percent: percent });
-    } catch {}
+    } catch (err) {
+      console.warn('Failed to save reading progress:', err);
+    }
   };
 
   const handlePageChange = (page: number, total: number) => {
@@ -91,7 +95,7 @@ export default function ReaderPage() {
     pdfRef.current?.handleZoomOut();
   };
 
-  const handleTextSelect = (text: string, rectOrCfi: any) => {
+  const handleTextSelect = (text: string, rectOrCfi: DOMRect | string) => {
     if (rectOrCfi instanceof DOMRect) {
       setSelectionMenu({ visible: true, x: rectOrCfi.left + rectOrCfi.width / 2, y: rectOrCfi.top - 10, text });
     } else {
@@ -233,7 +237,9 @@ export default function ReaderPage() {
               }}
             >
               <span style={{ fontSize: 13 }}>{item.title}</span>
-              <span style={{ color: '#888', fontSize: 11, marginLeft: 'auto' }}>P.{item.pageNumber}</span>
+              {isPdf && (
+                <span style={{ color: '#888', fontSize: 11, marginLeft: 'auto' }}>P.{item.pageNumber}</span>
+              )}
             </List.Item>
           )}
         />
