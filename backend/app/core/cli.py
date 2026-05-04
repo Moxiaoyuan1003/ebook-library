@@ -17,18 +17,22 @@ def main(argv=None):
     # Set data dir in config BEFORE importing app modules
     if args.data_dir:
         import os
+
         os.environ["DATA_DIR"] = args.data_dir
 
     from app.core.config import settings
+
     if args.data_dir:
         settings.DATA_DIR = args.data_dir
 
     # Initialize database (creates SQLite DB and tables if needed)
     from app.core.database import init_database
+
     init_database()
 
     # Start uvicorn
     import uvicorn
+
     uvicorn.run(
         "app.main:app",
         host=args.host,

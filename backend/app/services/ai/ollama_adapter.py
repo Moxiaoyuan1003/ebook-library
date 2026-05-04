@@ -31,8 +31,7 @@ class OllamaAdapter(AIServiceInterface):
                 json={
                     "model": self.model,
                     "prompt": (
-                        f"分析以下图书内容，生成{max_tags}个最相关的标签。"
-                        f"只返回标签列表，用逗号分隔。\n\n{text[:3000]}"
+                        f"分析以下图书内容，生成{max_tags}个最相关的标签。只返回标签列表，用逗号分隔。\n\n{text[:3000]}"
                     ),
                     "stream": False,
                     "options": {"num_predict": 100},

@@ -36,4 +36,5 @@ async def health_check():
 
 if __name__ == "__main__":
     from app.core.cli import main
+
     main()

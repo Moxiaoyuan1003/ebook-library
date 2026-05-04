@@ -51,12 +51,7 @@ class SearchEngine:
 
     def _content_keyword_search(self, query: str, top_k: int) -> list[SearchResult]:
         """Fallback text search on passage content (used when pgvector unavailable)."""
-        results = (
-            self.db.query(Passage)
-            .filter(Passage.content.ilike(f"%{query}%"))
-            .limit(top_k)
-            .all()
-        )
+        results = self.db.query(Passage).filter(Passage.content.ilike(f"%{query}%")).limit(top_k).all()
 
         search_results = []
         for passage in results:
