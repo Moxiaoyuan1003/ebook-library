@@ -17,6 +17,10 @@ class Annotation(Base):
     selected_text = Column(Text)
     note_content = Column(Text)
     color = Column(String(7), default="#ffeb3b")
+    highlight_color = Column(String(20), default="yellow")  # yellow/green/blue/pink/purple
+    start_cfi = Column(Text)  # EPUB start CFI
+    end_cfi = Column(Text)    # EPUB end CFI
+    rect_data = Column(Text)  # JSON string for PDF highlight rectangles
     created_at = Column(DateTime, default=datetime.utcnow)
 
     book = relationship("Book", back_populates="annotations")
