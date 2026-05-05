@@ -50,6 +50,8 @@ export default function TopNav() {
         background: tokens.header,
         color: tokens.text,
         borderBottom: `1px solid ${tokens.border}`,
+        position: 'relative',
+        zIndex: 10,
       }}
     >
       <div style={{ fontSize: 16, fontWeight: 'bold', marginRight: 48, ...primaryGradientStyle }}>

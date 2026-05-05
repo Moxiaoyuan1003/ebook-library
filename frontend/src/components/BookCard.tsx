@@ -72,6 +72,7 @@ export default function BookCard({ book, onClick }: BookCardProps) {
         transition: 'transform 0.2s, box-shadow 0.2s',
         transform: hovered ? 'translateY(-4px)' : 'none',
         boxShadow: hovered ? tokens.cardShadow : 'none',
+        overflow: 'hidden',
       }}
     >
       {/* Cover */}
