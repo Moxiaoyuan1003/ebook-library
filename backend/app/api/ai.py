@@ -29,6 +29,13 @@ def get_ai_config():
         "has_openai_key": bool(settings.OPENAI_API_KEY),
         "has_claude_key": bool(settings.CLAUDE_API_KEY),
         "ollama_url": settings.OLLAMA_BASE_URL,
+        "openai_model": settings.OPENAI_MODEL,
+        "openai_base_url": settings.OPENAI_BASE_URL,
+        "claude_model": settings.CLAUDE_MODEL,
+        "ollama_model": settings.OLLAMA_MODEL,
+        "has_custom_key": bool(settings.CUSTOM_API_KEY),
+        "custom_base_url": settings.CUSTOM_BASE_URL,
+        "custom_model": settings.CUSTOM_MODEL,
     }
 
 
@@ -55,23 +62,88 @@ def save_ai_config(body: dict):
             lines.append(f"{key}={value}\n")
         return lines
 
-    if "provider" in body:
-        lines = set_env(lines, "AI_PROVIDER", body["provider"])
-        settings.AI_PROVIDER = body["provider"]
-    if "openai_api_key" in body:
-        lines = set_env(lines, "OPENAI_API_KEY", body["openai_api_key"])
-        settings.OPENAI_API_KEY = body["openai_api_key"]
-    if "claude_api_key" in body:
-        lines = set_env(lines, "CLAUDE_API_KEY", body["claude_api_key"])
-        settings.CLAUDE_API_KEY = body["claude_api_key"]
-    if "ollama_url" in body:
-        lines = set_env(lines, "OLLAMA_BASE_URL", body["ollama_url"])
-        settings.OLLAMA_BASE_URL = body["ollama_url"]
+    field_map = {
+        "provider": "AI_PROVIDER",
+        "openai_api_key": "OPENAI_API_KEY",
+        "openai_base_url": "OPENAI_BASE_URL",
+        "openai_model": "OPENAI_MODEL",
+        "claude_api_key": "CLAUDE_API_KEY",
+        "claude_model": "CLAUDE_MODEL",
+        "ollama_url": "OLLAMA_BASE_URL",
+        "ollama_model": "OLLAMA_MODEL",
+        "custom_api_key": "CUSTOM_API_KEY",
+        "custom_base_url": "CUSTOM_BASE_URL",
+        "custom_model": "CUSTOM_MODEL",
+    }
+    settings_map = {
+        "provider": "AI_PROVIDER",
+        "openai_api_key": "OPENAI_API_KEY",
+        "openai_base_url": "OPENAI_BASE_URL",
+        "openai_model": "OPENAI_MODEL",
+        "claude_api_key": "CLAUDE_API_KEY",
+        "claude_model": "CLAUDE_MODEL",
+        "ollama_url": "OLLAMA_BASE_URL",
+        "ollama_model": "OLLAMA_MODEL",
+        "custom_api_key": "CUSTOM_API_KEY",
+        "custom_base_url": "CUSTOM_BASE_URL",
+        "custom_model": "CUSTOM_MODEL",
+    }
+
+    for body_key, env_key in field_map.items():
+        if body_key in body:
+            lines = set_env(lines, env_key, body[body_key])
+            setattr(settings, settings_map[body_key], body[body_key])
 
     with open(env_path, "w") as f:
         f.writelines(lines)
 
     return {"status": "ok"}
+
+
+@router.post("/test")
+async def test_ai_connection():
+    """Test the current AI configuration by sending a simple request."""
+    factory = _get_ai_factory()
+    try:
+        ai_service, provider_name = await factory.get_service()
+    except AIServiceUnavailableError as exc:
+        return {"success": False, "error": str(exc), "provider": None}
+
+    try:
+        response = await ai_service.chat(
+            messages=[{"role": "user", "content": "Hello, reply with just 'OK'."}],
+            max_tokens=10,
+        )
+        return {"success": True, "provider": provider_name, "response": response[:100]}
+    except Exception as exc:
+        return {"success": False, "error": str(exc), "provider": provider_name}
+
+
+@router.get("/models")
+def get_available_models():
+    """Return available models for each provider."""
+    return {
+        "openai": [
+            {"id": "gpt-4o", "name": "GPT-4o"},
+            {"id": "gpt-4o-mini", "name": "GPT-4o Mini"},
+            {"id": "gpt-4-turbo", "name": "GPT-4 Turbo"},
+            {"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo"},
+        ],
+        "claude": [
+            {"id": "claude-sonnet-4-20250514", "name": "Claude Sonnet 4"},
+            {"id": "claude-haiku-4-20250514", "name": "Claude Haiku 4"},
+            {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet"},
+            {"id": "claude-3-5-haiku-20241022", "name": "Claude 3.5 Haiku"},
+        ],
+        "ollama": [
+            {"id": "llama3.1", "name": "Llama 3.1"},
+            {"id": "llama3", "name": "Llama 3"},
+            {"id": "qwen2.5", "name": "Qwen 2.5"},
+            {"id": "deepseek-r1", "name": "DeepSeek R1"},
+            {"id": "phi3", "name": "Phi-3"},
+            {"id": "gemma2", "name": "Gemma 2"},
+        ],
+    }
 
 
 @router.get("/status")

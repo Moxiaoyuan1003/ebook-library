@@ -59,18 +59,34 @@ class AIServiceFactory:
                 OpenAIAdapter(
                     api_key=self._settings.OPENAI_API_KEY,
                     base_url=self._settings.OPENAI_BASE_URL,
+                    model=self._settings.OPENAI_MODEL,
                 ),
                 "openai",
             )
         if provider == "claude":
             return (
-                ClaudeAdapter(api_key=self._settings.CLAUDE_API_KEY),
+                ClaudeAdapter(
+                    api_key=self._settings.CLAUDE_API_KEY,
+                    model=self._settings.CLAUDE_MODEL,
+                ),
                 "claude",
             )
         if provider == "ollama":
             return (
-                OllamaAdapter(base_url=self._settings.OLLAMA_BASE_URL),
+                OllamaAdapter(
+                    base_url=self._settings.OLLAMA_BASE_URL,
+                    model=self._settings.OLLAMA_MODEL,
+                ),
                 "ollama",
+            )
+        if provider == "custom":
+            return (
+                OpenAIAdapter(
+                    api_key=self._settings.CUSTOM_API_KEY,
+                    base_url=self._settings.CUSTOM_BASE_URL,
+                    model=self._settings.CUSTOM_MODEL,
+                ),
+                "custom",
             )
         raise ValueError(f"Unknown AI provider: {provider}")
 

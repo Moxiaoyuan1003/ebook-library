@@ -25,11 +25,17 @@ class Settings(BaseSettings):
     PG_BIN_DIR: str = ""
 
     # AI
-    AI_PROVIDER: str = "openai"  # openai / claude / ollama
+    AI_PROVIDER: str = "openai"  # openai / claude / ollama / custom
     OPENAI_API_KEY: str = ""
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
+    OPENAI_MODEL: str = "gpt-4o-mini"
     CLAUDE_API_KEY: str = ""
+    CLAUDE_MODEL: str = "claude-sonnet-4-20250514"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama3.1"
+    CUSTOM_API_KEY: str = ""
+    CUSTOM_BASE_URL: str = ""
+    CUSTOM_MODEL: str = ""
 
     # Storage
     BOOK_STORAGE_DIR: str = ""

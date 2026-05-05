@@ -9,6 +9,26 @@ export interface AiConfig {
   has_openai_key: boolean;
   has_claude_key: boolean;
   ollama_url: string;
+  openai_model: string;
+  openai_base_url: string;
+  claude_model: string;
+  ollama_model: string;
+  has_custom_key: boolean;
+  custom_base_url: string;
+  custom_model: string;
+}
+
+export interface AiTestResult {
+  success: boolean;
+  provider: string | null;
+  response?: string;
+  error?: string;
+}
+
+export interface AiModels {
+  openai: { id: string; name: string }[];
+  claude: { id: string; name: string }[];
+  ollama: { id: string; name: string }[];
 }
 
 export interface AiStatus {
@@ -37,9 +57,11 @@ export interface CrossBookResponse {
 
 export const aiApi = {
   getConfig: () => api.get<AiConfig>('/config'),
-  saveConfig: (data: { provider?: string; openai_api_key?: string; claude_api_key?: string; ollama_url?: string }) =>
+  saveConfig: (data: Record<string, string>) =>
     api.post('/config', data),
   getStatus: () => api.get<AiStatus>('/status'),
+  testConnection: () => api.post<AiTestResult>('/test'),
+  getModels: () => api.get<AiModels>('/models'),
   generateSummary: (bookId: string, forceRegenerate = false) =>
     api.post('/summary', { book_id: bookId, force_regenerate: forceRegenerate }),
   chat: (messages: { role: string; content: string }[], bookId?: string) =>
