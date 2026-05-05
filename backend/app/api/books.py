@@ -3,13 +3,33 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models import ReadingProgress
+from app.models.bookmark import Bookmark
+from app.models.tag import Tag
 from app.schemas.book import BookCreate, BookListResponse, BookResponse, BookUpdate
+from app.schemas.tag import TagResponse
 from app.services.book_service import BookService
 from app.services.import_service import ImportService
+
+
+class FilePathBody(BaseModel):
+    file_path: str
+
+
+class DirectoryBody(BaseModel):
+    directory: str
+
+
+class BookmarkBody(BaseModel):
+    page_number: int
+
+
+class TagBody(BaseModel):
+    tag: str
 
 router = APIRouter()
 
@@ -21,6 +41,7 @@ def list_books(
     search: str | None = None,
     reading_status: str | None = None,
     is_favorite: bool | None = None,
+    bookshelf_id: UUID | None = None,
     db: Session = Depends(get_db),
 ):
     service = BookService(db)
@@ -30,6 +51,7 @@ def list_books(
         search=search,
         reading_status=reading_status,
         is_favorite=is_favorite,
+        bookshelf_id=bookshelf_id,
     )
     return BookListResponse(
         items=[BookResponse.model_validate(b) for b in books],
@@ -82,18 +104,21 @@ def delete_book(book_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/import/file")
-def import_file(file_path: str, db: Session = Depends(get_db)):
+def import_file(body: FilePathBody, db: Session = Depends(get_db)):
     service = ImportService(db)
-    book = service.import_file(file_path)
+    try:
+        book = service.import_file(body.file_path)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not book:
         raise HTTPException(status_code=400, detail="Unsupported file format")
     return BookResponse.model_validate(book)
 
 
 @router.post("/import/directory")
-def import_directory(directory: str, db: Session = Depends(get_db)):
+def import_directory(body: DirectoryBody, db: Session = Depends(get_db)):
     service = ImportService(db)
-    files = service.scan_directory(directory)
+    files = service.scan_directory(body.directory)
     if not files:
         raise HTTPException(status_code=400, detail="No supported files found")
     return {"files_found": len(files), "files": files}
@@ -133,3 +158,70 @@ def update_reading_progress(
         progress.progress_percent = progress_percent
     db.commit()
     return {"status": "ok"}
+
+
+@router.get("/{book_id}/bookmarks")
+def get_bookmarks(book_id: UUID, db: Session = Depends(get_db)):
+    bms = db.query(Bookmark).filter(Bookmark.book_id == book_id).order_by(Bookmark.page_number).all()
+    return [{"id": str(b.id), "page_number": b.page_number, "created_at": b.created_at.isoformat()} for b in bms]
+
+
+@router.post("/{book_id}/bookmarks")
+def add_bookmark(book_id: UUID, body: BookmarkBody, db: Session = Depends(get_db)):
+    existing = db.query(Bookmark).filter(
+        Bookmark.book_id == book_id, Bookmark.page_number == body.page_number
+    ).first()
+    if existing:
+        return {"id": str(existing.id), "page_number": existing.page_number}
+    bm = Bookmark(book_id=book_id, page_number=body.page_number)
+    db.add(bm)
+    db.commit()
+    return {"id": str(bm.id), "page_number": bm.page_number}
+
+
+@router.delete("/{book_id}/bookmarks/{page_number}")
+def delete_bookmark(book_id: UUID, page_number: int, db: Session = Depends(get_db)):
+    db.query(Bookmark).filter(
+        Bookmark.book_id == book_id, Bookmark.page_number == page_number
+    ).delete()
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/{book_id}/tags")
+def get_book_tags(book_id: UUID, db: Session = Depends(get_db)):
+    service = BookService(db)
+    book = service.get_book(book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    return {"tags": [{"id": str(t.id), "name": t.name, "color": t.color} for t in book.tags]}
+
+
+@router.post("/{book_id}/tags")
+def add_book_tag(book_id: UUID, body: TagBody, db: Session = Depends(get_db)):
+    service = BookService(db)
+    book = service.get_book(book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    tag = db.query(Tag).filter(Tag.name == body.tag).first()
+    if not tag:
+        tag = Tag(name=body.tag)
+        db.add(tag)
+        db.flush()
+    if tag not in book.tags:
+        book.tags.append(tag)
+        db.commit()
+    return {"id": str(tag.id), "name": tag.name, "color": tag.color}
+
+
+@router.delete("/{book_id}/tags/{tag_name}")
+def remove_book_tag(book_id: UUID, tag_name: str, db: Session = Depends(get_db)):
+    service = BookService(db)
+    book = service.get_book(book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    tag = db.query(Tag).filter(Tag.name == tag_name).first()
+    if tag and tag in book.tags:
+        book.tags.remove(tag)
+        db.commit()
+    return {"ok": True}

@@ -1,222 +1,166 @@
-import { useEffect, useState } from 'react';
-import { Tabs, Input, Card, Empty, Spin, Pagination, Tag, Typography } from 'antd';
-import { SearchOutlined, FileTextOutlined } from '@ant-design/icons';
+import { useState, useCallback } from 'react';
+import { Input, Spin, Tag } from 'antd';
+import { BookOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { useBookStore } from '../../stores/bookStore';
-import { Book } from '../../services/bookApi';
-import BookCard from '../../components/BookCard';
-import { aiApi, CrossBookSource } from '../../services/aiApi';
-
-const { Text, Paragraph } = Typography;
+import { useThemeStore } from '../../stores/themeStore';
+import { searchApi, SearchPassage } from '../../services/searchApi';
 
 export default function SearchPage() {
+  const tokens = useThemeStore((s) => s.tokens);
   const navigate = useNavigate();
-  const {
-    books,
-    total,
-    page,
-    pageSize,
-    loading,
-    searchQuery,
-    fetchBooks,
-    setSearchQuery,
-    setPage,
-  } = useBookStore();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchPassage[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
 
-  const [crossQuery, setCrossQuery] = useState('');
-  const [crossLoading, setCrossLoading] = useState(false);
-  const [crossAnswer, setCrossAnswer] = useState('');
-  const [crossSources, setCrossSources] = useState<CrossBookSource[]>([]);
-
-  useEffect(() => {
-    fetchBooks();
-  }, [page, searchQuery]);
-
-  const handleBookClick = (book: Book) => {
-    navigate(`/reader/${book.id}`);
-  };
-
-  const handleCrossSearch = async (value: string) => {
-    if (!value.trim()) return;
-    setCrossLoading(true);
-    setCrossAnswer('');
-    setCrossSources([]);
-    try {
-      const response = await aiApi.crossBookQuery(value);
-      setCrossAnswer(response.data.answer);
-      setCrossSources(response.data.sources);
-    } catch {
-      setCrossAnswer('查询失败，请稍后重试。');
-      setCrossSources([]);
-    } finally {
-      setCrossLoading(false);
+  const doSearch = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setResults([]);
+      setSearched(false);
+      return;
     }
+    setLoading(true);
+    setSearched(true);
+    try {
+      const r = await searchApi.search(q.trim());
+      setResults(r.data.results);
+    } catch {
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const highlight = (text: string, q: string) => {
+    if (!q || !text) return text;
+    const parts = text.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+    return parts.map((p, i) =>
+      p.toLowerCase() === q.toLowerCase() ? (
+        <span
+          key={i}
+          style={{
+            background: tokens.primary,
+            color: '#fff',
+            padding: '0 2px',
+            borderRadius: 2,
+          }}
+        >
+          {p}
+        </span>
+      ) : (
+        p
+      ),
+    );
   };
 
-  const searchTab = (
-    <div style={{ padding: 24 }}>
-      <div style={{ marginBottom: 24 }}>
-        <Input.Search
-          placeholder="搜索书名或作者"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onSearch={fetchBooks}
-          enterButton={
-            <>
-              <SearchOutlined /> 搜索
-            </>
-          }
-          size="large"
-          style={{ maxWidth: 500 }}
-        />
-      </div>
-
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: 48 }}>
-          <Spin size="large" />
-        </div>
-      ) : books.length === 0 ? (
-        <Empty description="暂无搜索结果" />
-      ) : (
-        <>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-              gap: 16,
-            }}
-          >
-            {books.map((book) => (
-              <BookCard key={book.id} book={book} onClick={handleBookClick} />
-            ))}
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <Pagination
-              current={page}
-              total={total}
-              pageSize={pageSize}
-              onChange={setPage}
-              showSizeChanger={false}
-            />
-          </div>
-        </>
-      )}
-    </div>
+  // Group results by book
+  const grouped = results.reduce(
+    (acc, r) => {
+      const key = r.book_id;
+      if (!acc[key]) acc[key] = { book_id: r.book_id, book_title: r.book_title, passages: [] };
+      acc[key].passages.push(r);
+      return acc;
+    },
+    {} as Record<string, { book_id: string; book_title: string; passages: SearchPassage[] }>,
   );
 
-  const crossBookTab = (
-    <div style={{ padding: 24 }}>
-      <div style={{ marginBottom: 24 }}>
-        <Input.Search
-          placeholder="输入自然语言问题，跨书籍检索"
-          value={crossQuery}
-          onChange={(e) => setCrossQuery(e.target.value)}
-          onSearch={handleCrossSearch}
-          enterButton={
-            <>
-              <SearchOutlined /> 跨书查询
-            </>
-          }
-          size="large"
-          loading={crossLoading}
-          style={{ maxWidth: 600 }}
-        />
-      </div>
+  const groups = Object.values(grouped);
 
-      {crossLoading && (
-        <div style={{ textAlign: 'center', padding: 48 }}>
-          <Spin size="large" />
-          <div style={{ marginTop: 12, color: '#888' }}>正在跨书检索并生成回答...</div>
-        </div>
-      )}
-
-      {!crossLoading && crossAnswer && (
-        <div>
-          <Card
-            title="AI 回答"
-            style={{ marginBottom: 24, background: '#141414', borderColor: '#303030' }}
-            headStyle={{ borderColor: '#303030' }}
-          >
-            <Paragraph style={{ whiteSpace: 'pre-wrap', color: '#d9d9d9', margin: 0 }}>
-              {crossAnswer}
-            </Paragraph>
-          </Card>
-
-          {crossSources.length > 0 && (
-            <>
-              <h3 style={{ color: '#d9d9d9', marginBottom: 16 }}>
-                来源 ({crossSources.length} 本书)
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {crossSources.map((source) => (
-                  <Card
-                    key={source.book_id}
-                    size="small"
-                    style={{ background: '#1a1a1a', borderColor: '#303030' }}
-                    headStyle={{ borderColor: '#303030' }}
-                    title={
-                      <span
-                        style={{ cursor: 'pointer', color: '#1677ff' }}
-                        onClick={() => navigate(`/reader/${source.book_id}`)}
-                      >
-                        <FileTextOutlined style={{ marginRight: 8 }} />
-                        {source.book_title}
-                      </span>
-                    }
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {source.passages.map((passage, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            padding: '8px 12px',
-                            background: '#111',
-                            borderRadius: 6,
-                            border: '1px solid #262626',
-                          }}
-                        >
-                          <div style={{ marginBottom: 4 }}>
-                            {passage.page_number !== null && (
-                              <Tag style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px' }}>
-                                第 {passage.page_number} 页
-                              </Tag>
-                            )}
-                            <Text style={{ fontSize: 10, color: '#666' }}>
-                              相关度: {(passage.score * 100).toFixed(1)}%
-                            </Text>
-                          </div>
-                          <Paragraph
-                            ellipsis={{ rows: 3, expandable: true }}
-                            style={{ margin: 0, fontSize: 13, color: '#aaa' }}
-                          >
-                            {passage.content}
-                          </Paragraph>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {!crossLoading && !crossAnswer && (
-        <Empty description="输入问题开始跨书查询" style={{ padding: 48 }} />
-      )}
-    </div>
-  );
-
-  const tabItems = [
-    { key: 'search', label: '搜索', children: searchTab },
-    { key: 'cross-book', label: '跨书查询', children: crossBookTab },
-  ];
+  const cardStyle: React.CSSProperties = {
+    background: tokens.cardBg,
+    border: tokens.cardBorder,
+    borderRadius: tokens.radius,
+    padding: 14,
+    marginBottom: 8,
+    cursor: 'pointer',
+    transition: 'background 0.2s',
+  };
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2 style={{ margin: '0 0 16px' }}>搜索</h2>
-      <Tabs defaultActiveKey="search" items={tabItems} />
+    <div style={{ padding: 24, maxWidth: 700, margin: '0 auto' }}>
+      <h2 style={{ color: tokens.text, marginBottom: 16 }}>全文搜索</h2>
+      <Input.Search
+        placeholder="搜索书籍内容、批注、笔记..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onSearch={doSearch}
+        size="large"
+        style={{ marginBottom: 24 }}
+        loading={loading}
+      />
+
+      {loading && (
+        <div style={{ textAlign: 'center', padding: 48 }}>
+          <Spin size="large" />
+        </div>
+      )}
+
+      {!loading && !searched && (
+        <div style={{ textAlign: 'center', color: tokens.textMuted, padding: 48 }}>
+          输入关键词搜索书籍内容、批注和笔记
+        </div>
+      )}
+
+      {!loading && searched && results.length === 0 && (
+        <div style={{ textAlign: 'center', color: tokens.textMuted, padding: 48 }}>
+          未找到匹配结果
+        </div>
+      )}
+
+      {!loading && groups.length > 0 && (
+        <div>
+          <div style={{ color: tokens.textSecondary, marginBottom: 12, fontSize: 13 }}>
+            找到 {results.length} 条结果，来自 {groups.length} 本书
+          </div>
+          {groups.map((group) => (
+            <div key={group.book_id} style={{ marginBottom: 24 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 8,
+                  cursor: 'pointer',
+                }}
+                onClick={() => navigate(`/book/${group.book_id}`)}
+              >
+                <BookOutlined style={{ color: tokens.primary }} />
+                <span style={{ color: tokens.text, fontWeight: 600, fontSize: 15 }}>
+                  {group.book_title}
+                </span>
+                <Tag style={{ marginLeft: 'auto' }}>{group.passages.length} 条</Tag>
+              </div>
+              {group.passages.map((passage, idx) => (
+                <div
+                  key={idx}
+                  style={cardStyle}
+                  onClick={() => navigate(`/reader/${group.book_id}`)}
+                >
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+                    {passage.page_number != null && (
+                      <span style={{ color: tokens.textMuted, fontSize: 12 }}>
+                        P.{passage.page_number}
+                      </span>
+                    )}
+                    {passage.chapter && (
+                      <span style={{ color: tokens.textMuted, fontSize: 12 }}>
+                        {passage.chapter}
+                      </span>
+                    )}
+                    <span style={{ color: tokens.textMuted, fontSize: 12, marginLeft: 'auto' }}>
+                      相关度: {(passage.score * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <div style={{ color: tokens.textSecondary, fontSize: 13, lineHeight: 1.6 }}>
+                    {highlight(passage.content.slice(0, 200), query)}
+                    {passage.content.length > 200 && '...'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

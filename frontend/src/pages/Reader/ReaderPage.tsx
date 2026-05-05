@@ -12,6 +12,8 @@ import {
   MessageOutlined,
   FullscreenOutlined,
   FullscreenExitOutlined,
+  StarOutlined,
+  StarFilled,
 } from '@ant-design/icons';
 import { bookApi, Book } from '../../services/bookApi';
 import { annotationApi } from '../../services/annotationApi';
@@ -48,6 +50,13 @@ export default function ReaderPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [toolbarVisible, setToolbarVisible] = useState(true);
   const hideTimerRef = useRef<NodeJS.Timeout>();
+
+  // Bookmarks
+  const [bookmarkedPages, setBookmarkedPages] = useState<Set<number>>(new Set());
+
+  // Reading session timer
+  const sessionStartRef = useRef<Date>(new Date());
+  const lastActivityRef = useRef<Date>(new Date());
 
   // Note modal
   const [noteModalOpen, setNoteModalOpen] = useState(false);
@@ -163,6 +172,25 @@ export default function ReaderPage() {
     loadProg();
   }, [bookId, navigate]);
 
+  // ── Load bookmarks ──
+  useEffect(() => {
+    if (!bookId) return;
+    bookApi.getBookmarks(bookId).then((r) => {
+      setBookmarkedPages(new Set(r.data.map((b) => b.page_number)));
+    }).catch(() => {});
+  }, [bookId]);
+
+  // ── Save reading session on unmount ──
+  useEffect(() => {
+    return () => {
+      const duration = Date.now() - sessionStartRef.current.getTime();
+      if (duration > 30000 && bookId) {
+        // Session longer than 30s, mark as reading
+        bookApi.update(bookId, { reading_status: 'reading' }).catch(() => {});
+      }
+    };
+  }, [bookId]);
+
   const saveProgress = async (page: number) => {
     if (!bookId) return;
     try {
@@ -171,10 +199,26 @@ export default function ReaderPage() {
     } catch { /* ignore */ }
   };
 
+  const toggleBookmark = async () => {
+    if (!bookId) return;
+    if (bookmarkedPages.has(currentPage)) {
+      await bookApi.deleteBookmark(bookId, currentPage);
+      setBookmarkedPages((prev) => {
+        const s = new Set(prev);
+        s.delete(currentPage);
+        return s;
+      });
+    } else {
+      await bookApi.addBookmark(bookId, currentPage);
+      setBookmarkedPages((prev) => new Set(prev).add(currentPage));
+    }
+  };
+
   const handlePageChange = (page: number, total: number) => {
     setCurrentPage(page);
     setTotalPages(total);
     saveProgress(page);
+    lastActivityRef.current = new Date();
   };
 
   const goToPage = (page: number) => pdfRef.current?.goToPage(page);
@@ -312,6 +356,12 @@ export default function ReaderPage() {
             <Tag style={{ fontSize: 11 }}>阅读中</Tag>
           )}
           <span style={{ width: 1, height: 16, background: tokens.border }} />
+          <Button
+            icon={bookmarkedPages.has(currentPage) ? <StarFilled style={{ color: tokens.primary }} /> : <StarOutlined />}
+            type="text"
+            onClick={toggleBookmark}
+            title={bookmarkedPages.has(currentPage) ? '取消书签' : '添加书签'}
+          />
           <Button icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />} type="text" onClick={toggleFullscreen} />
           <Button icon={<BookOutlined />} type="text" onClick={() => setShowToc(true)} />
           <Button icon={<HighlightOutlined />} type="text" onClick={() => setShowAnnotations(true)} />
