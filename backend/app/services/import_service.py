@@ -60,11 +60,12 @@ class ImportService:
 
         # Save cover image if available
         if parsed.cover_image:
-            cover_dir = Path("data/covers")
+            from app.core.config import settings as app_settings
+            cover_dir = Path(app_settings.get_covers_dir())
             cover_dir.mkdir(parents=True, exist_ok=True)
             cover_path = cover_dir / f"{book.id}.png"
             cover_path.write_bytes(parsed.cover_image)
-            book.cover_url = str(cover_path)
+            book.cover_url = f"{book.id}.png"
             self.db.commit()
 
         return book

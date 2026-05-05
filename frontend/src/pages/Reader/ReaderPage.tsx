@@ -335,25 +335,25 @@ export default function ReaderPage() {
         transition: 'opacity 0.3s, transform 0.3s',
         pointerEvents: toolbarVisible ? 'auto' : 'none',
       }}>
-        <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/')} />
+        <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/')} title="返回书库" />
         <span style={{ flex: 1, textAlign: 'center', fontSize: 14, color: tokens.text }}>{book.title}</span>
         <Space>
           {isPdf ? (
             <>
-              <Button icon={<LeftOutlined />} type="text" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} />
+              <Button icon={<LeftOutlined />} type="text" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} title="上一页" />
               <InputNumber min={1} max={totalPages || 1} value={currentPage} onChange={(v) => v && goToPage(v)} size="small" style={{ width: 60 }} />
               <span style={{ color: tokens.textMuted, fontSize: 12 }}>/ {totalPages}</span>
-              <Button icon={<RightOutlined />} type="text" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages} />
+              <Button icon={<RightOutlined />} type="text" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages} title="下一页" />
               <span style={{ width: 1, height: 16, background: tokens.border }} />
-              <Button icon={<ZoomOutOutlined />} type="text" onClick={handleZoomOut} />
+              <Button icon={<ZoomOutOutlined />} type="text" onClick={handleZoomOut} title="缩小" />
               <Tag style={{ fontSize: 11 }}>{zoom}%</Tag>
-              <Button icon={<ZoomInOutlined />} type="text" onClick={handleZoomIn} />
+              <Button icon={<ZoomInOutlined />} type="text" onClick={handleZoomIn} title="放大" />
             </>
           ) : book.file_format === 'epub' ? (
             <>
-              <Button icon={<LeftOutlined />} type="text" onClick={() => epubRef.current?.goPrev()} />
+              <Button icon={<LeftOutlined />} type="text" onClick={() => epubRef.current?.goPrev()} title="上一页" />
               <Tag style={{ fontSize: 11 }}>EPUB</Tag>
-              <Button icon={<RightOutlined />} type="text" onClick={() => epubRef.current?.goNext()} />
+              <Button icon={<RightOutlined />} type="text" onClick={() => epubRef.current?.goNext()} title="下一页" />
             </>
           ) : (
             <Tag style={{ fontSize: 11 }}>阅读中</Tag>
@@ -365,10 +365,10 @@ export default function ReaderPage() {
             onClick={toggleBookmark}
             title={bookmarkedPages.has(currentPage) ? '取消书签' : '添加书签'}
           />
-          <Button icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />} type="text" onClick={toggleFullscreen} />
-          <Button icon={<BookOutlined />} type="text" onClick={() => setShowToc(true)} />
-          <Button icon={<HighlightOutlined />} type="text" onClick={() => setShowAnnotations(true)} />
-          <Button icon={<MessageOutlined />} type="text" onClick={() => setShowChat(!showChat)} />
+          <Button icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />} type="text" onClick={toggleFullscreen} title={isFullscreen ? '退出全屏' : '全屏'} />
+          <Button icon={<BookOutlined />} type="text" onClick={() => setShowToc(true)} title="目录" />
+          <Button icon={<HighlightOutlined />} type="text" onClick={() => setShowAnnotations(true)} title="笔记" />
+          <Button icon={<MessageOutlined />} type="text" onClick={() => setShowChat(!showChat)} title="AI 对话" />
           <Popover
             content={
               <div style={{ width: 240 }}>
@@ -449,7 +449,7 @@ export default function ReaderPage() {
           </div>
         </div>
 
-        <div style={{ width: '100%', height: '100%', pointerEvents: 'auto' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ width: '100%', height: '100%', pointerEvents: 'auto', padding: `0 ${MARGIN_OPTIONS.find((m) => m.key === readerSettings.marginMode)?.value || 48}px` }} onClick={(e) => e.stopPropagation()}>
           {isPdf ? (
             <PdfViewer
               ref={pdfRef}
@@ -470,6 +470,9 @@ export default function ReaderPage() {
               onTocLoad={setToc}
               onTextSelect={handleTextSelect}
               initialCfi={undefined}
+              fontSize={readerSettings.fontSize}
+              fontFamily={readerSettings.fontFamily}
+              lineHeight={readerSettings.lineHeight}
             />
           ) : (
             <div style={{ textAlign: 'center', color: tokens.textMuted, padding: 48 }}>

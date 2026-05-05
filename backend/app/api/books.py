@@ -104,10 +104,10 @@ def delete_book(book_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/import/file")
-def import_file(body: FilePathBody, db: Session = Depends(get_db)):
+async def import_file(body: FilePathBody, db: Session = Depends(get_db)):
     service = ImportService(db)
     try:
-        book = service.import_file(body.file_path)
+        book = await service.import_file_enriched(body.file_path)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     if not book:

@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api import ai, annotations, backup, books, bookshelves, export, knowledge_cards, search, stats, system, tags, ws
 from app.core.config import settings
@@ -34,6 +37,12 @@ app.include_router(backup.router, prefix="/api/backup", tags=["backup"])
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "version": settings.APP_VERSION}
+
+
+# Serve cover images
+covers_dir = Path(settings.get_covers_dir())
+covers_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/covers", StaticFiles(directory=str(covers_dir)), name="covers")
 
 
 if __name__ == "__main__":

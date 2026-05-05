@@ -54,7 +54,7 @@ function ShelfManager() {
           renderItem={(shelf: any) => (
             <List.Item actions={[
               <Popconfirm key="del" title="确认删除此书架？" onConfirm={() => handleDelete(shelf.id)}>
-                <Button danger size="small" icon={<DeleteOutlined />} />
+                <Button danger size="small" icon={<DeleteOutlined />} title="删除书架" />
               </Popconfirm>,
             ]}>
               <List.Item.Meta title={shelf.name} description={shelf.description || '无描述'} />

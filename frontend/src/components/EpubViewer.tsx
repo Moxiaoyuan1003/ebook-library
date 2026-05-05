@@ -17,6 +17,8 @@ interface EpubViewerProps {
   onTextSelect?: (text: string, cfiRange: string) => void;
   initialCfi?: string;
   fontSize?: number;
+  fontFamily?: string;
+  lineHeight?: number;
   darkMode?: boolean;
 }
 
@@ -29,6 +31,8 @@ const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(
       onTextSelect,
       initialCfi,
       fontSize = 16,
+      fontFamily = 'system-ui',
+      lineHeight = 1.6,
       darkMode = true,
     },
     ref,
@@ -69,7 +73,8 @@ const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(
           color: darkMode ? '#e0e0e0' : '#333',
           background: darkMode ? '#0a0a0a' : '#fff',
           'font-size': `${fontSize}px`,
-          'line-height': '1.6',
+          'font-family': fontFamily,
+          'line-height': `${lineHeight}`,
         },
       });
 
@@ -139,11 +144,12 @@ const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(
             color: darkMode ? '#e0e0e0' : '#333',
             background: darkMode ? '#0a0a0a' : '#fff',
             'font-size': `${fontSize}px`,
-            'line-height': '1.6',
+            'font-family': fontFamily,
+            'line-height': `${lineHeight}`,
           },
         });
       }
-    }, [fontSize, darkMode]);
+    }, [fontSize, fontFamily, lineHeight, darkMode]);
 
     // Navigation methods
     const goNext = useCallback(() => renditionRef.current?.next(), []);
@@ -183,6 +189,10 @@ const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(
         ref={viewerRef}
         tabIndex={0}
         style={{ width: '100%', height: '100%', outline: 'none' }}
+        onWheel={(e) => {
+          if (e.deltaY > 30) goNext();
+          else if (e.deltaY < -30) goPrev();
+        }}
       />
     );
   },

@@ -110,7 +110,7 @@ class MetadataEnrichmentService:
                 cover_path = COVERS_DIR / f"{book_id}.{ext}"
                 cover_path.write_bytes(response.content)
                 logger.info("Downloaded cover for book %s to %s", book_id, cover_path)
-                return str(cover_path)
+                return f"{book_id}.{ext}"
 
         except Exception as exc:
             logger.error("Error downloading cover from %s: %s", url, exc)
