@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Drawer, List, Spin, message, Space, InputNumber, Tag, Modal, Input, Form } from 'antd';
+import { Button, Drawer, List, Spin, message, Space, InputNumber, Tag, Modal, Input, Form, Popover, Select, Slider } from 'antd';
 import {
   ArrowLeftOutlined,
   BookOutlined,
@@ -14,6 +14,7 @@ import {
   FullscreenExitOutlined,
   StarOutlined,
   StarFilled,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { bookApi, Book } from '../../services/bookApi';
 import { annotationApi } from '../../services/annotationApi';
@@ -28,12 +29,14 @@ import TextSelectionMenu from '../../components/TextSelectionMenu';
 import AnnotationSidebar from '../../components/AnnotationSidebar';
 import ReadingChatPanel from '../../components/ReadingChatPanel';
 import { useThemeStore } from '../../stores/themeStore';
+import { useReaderSettingsStore, FONT_OPTIONS, MARGIN_OPTIONS } from '../../stores/readerSettingsStore';
 
 export default function ReaderPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const tokens = useThemeStore((s) => s.tokens);
   const getReaderBg = useThemeStore((s) => s.getReaderBg);
+  const readerSettings = useReaderSettingsStore();
   const [book, setBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
   const [showToc, setShowToc] = useState(false);
@@ -366,6 +369,65 @@ export default function ReaderPage() {
           <Button icon={<BookOutlined />} type="text" onClick={() => setShowToc(true)} />
           <Button icon={<HighlightOutlined />} type="text" onClick={() => setShowAnnotations(true)} />
           <Button icon={<MessageOutlined />} type="text" onClick={() => setShowChat(!showChat)} />
+          <Popover
+            content={
+              <div style={{ width: 240 }}>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, color: tokens.textMuted, marginBottom: 4 }}>字体</div>
+                  <Select
+                    value={readerSettings.fontFamily}
+                    onChange={readerSettings.setFontFamily}
+                    options={FONT_OPTIONS}
+                    style={{ width: '100%' }}
+                    size="small"
+                  />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, color: tokens.textMuted, marginBottom: 4 }}>
+                    字号: {readerSettings.fontSize}px
+                  </div>
+                  <Slider
+                    min={12}
+                    max={24}
+                    value={readerSettings.fontSize}
+                    onChange={readerSettings.setFontSize}
+                  />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, color: tokens.textMuted, marginBottom: 4 }}>
+                    行高: {readerSettings.lineHeight}
+                  </div>
+                  <Slider
+                    min={1.2}
+                    max={2.0}
+                    step={0.1}
+                    value={readerSettings.lineHeight}
+                    onChange={readerSettings.setLineHeight}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: tokens.textMuted, marginBottom: 4 }}>边距</div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {MARGIN_OPTIONS.map((m) => (
+                      <Button
+                        key={m.key}
+                        size="small"
+                        type={readerSettings.marginMode === m.key ? 'primary' : 'default'}
+                        onClick={() => readerSettings.setMarginMode(m.key)}
+                        style={{ flex: 1 }}
+                      >
+                        {m.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            }
+            trigger="click"
+            placement="bottomRight"
+          >
+            <Button icon={<SettingOutlined />} type="text" title="阅读设置" />
+          </Popover>
         </Space>
       </div>
 

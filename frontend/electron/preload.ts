@@ -3,12 +3,17 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('electronAPI', {
   // File operations
   openFile: () => ipcRenderer.invoke('dialog:openFile'),
+  selectDirectory: () => ipcRenderer.invoke('dialog:selectDirectory'),
   readFile: (filePath: string) => ipcRenderer.invoke('file:read', filePath),
 
   // Window controls
   minimize: () => ipcRenderer.send('window:minimize'),
   maximize: () => ipcRenderer.send('window:maximize'),
   close: () => ipcRenderer.send('window:close'),
+
+  // Reminders
+  scheduleReminder: (time: string) => ipcRenderer.send('reminder:schedule', time),
+  cancelReminder: () => ipcRenderer.send('reminder:cancel'),
 
   // Update (electron-updater)
   checkForUpdates: () => ipcRenderer.send('check-for-updates'),

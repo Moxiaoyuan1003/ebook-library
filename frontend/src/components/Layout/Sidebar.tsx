@@ -10,6 +10,7 @@ import {
   ExportOutlined,
   BarChartOutlined,
   ClockCircleOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useBookStore } from '../../stores/bookStore';
@@ -20,6 +21,7 @@ import API_BASE from '../../services/apiConfig';
 interface Shelf {
   id: string;
   name: string;
+  rules?: Record<string, unknown> | null;
 }
 
 export default function Sidebar() {
@@ -65,7 +67,11 @@ export default function Sidebar() {
       label: '书架',
       type: 'group' as const,
       children: [
-        ...shelves.map((s) => ({ key: `shelf-${s.id}`, icon: <FolderOutlined />, label: s.name })),
+        ...shelves.map((s) => ({
+          key: `shelf-${s.id}`,
+          icon: s.rules ? <ThunderboltOutlined style={{ color: '#8b5cf6' }} /> : <FolderOutlined />,
+          label: s.rules ? `${s.name} ⚡` : s.name,
+        })),
         { key: 'add-shelf', icon: <PlusOutlined />, label: '新建书架' },
       ],
     },

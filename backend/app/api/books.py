@@ -267,3 +267,19 @@ def remove_book_tag(book_id: UUID, tag_name: str, db: Session = Depends(get_db))
         book.tags.remove(tag)
         db.commit()
     return {"ok": True}
+
+
+@router.get("/series/list")
+def list_series(db: Session = Depends(get_db)):
+    from sqlalchemy import func
+
+    from app.models.book import Book
+
+    series = (
+        db.query(Book.series_name, func.count(Book.id))
+        .filter(Book.series_name.isnot(None), Book.series_name != "")
+        .group_by(Book.series_name)
+        .order_by(Book.series_name)
+        .all()
+    )
+    return [{"name": s[0], "count": s[1]} for s in series]

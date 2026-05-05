@@ -1,7 +1,7 @@
 import uuid
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -21,5 +21,6 @@ class Bookshelf(Base):
     name = Column(String(200), nullable=False)
     description = Column(Text)
     sort_order = Column(Integer, default=0)
+    rules = Column(JSON, nullable=True)  # {"format":"epub","status":"reading","min_rating":4,"is_favorite":true}
 
     books = relationship("Book", secondary="bookshelf_books", back_populates="bookshelves")

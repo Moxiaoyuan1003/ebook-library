@@ -16,6 +16,8 @@ export interface Book {
   rating: number | null;
   is_favorite: boolean;
   summary: string | null;
+  series_name: string | null;
+  series_number: number | null;
   created_at: string;
 }
 
@@ -54,4 +56,8 @@ export const bookApi = {
     api.post<{ id: string; name: string; color: string }>(`/books/${bookId}/tags`, { tag }),
   removeTag: (bookId: string, tagName: string) =>
     api.delete(`/books/${bookId}/tags/${tagName}`),
+  getShelfBooks: (shelfId: string) =>
+    api.get<{ id: string; title: string; author: string | null; cover_url: string | null; file_format: string; reading_status: string; rating: number | null; is_favorite: boolean }[]>(`/bookshelves/${shelfId}/books`),
+  getSeriesList: () =>
+    api.get<{ name: string; count: number }[]>('/books/series/list'),
 };

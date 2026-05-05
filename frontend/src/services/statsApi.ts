@@ -10,6 +10,8 @@ export interface Stats {
   favorites: number;
   formats: Record<string, number>;
   avg_progress: number;
+  pages_per_day: number;
+  active_days: number;
 }
 
 export const statsApi = {

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, Notification } from 'electron';
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
@@ -7,6 +7,9 @@ import { setupAutoUpdater } from './updater';
 
 let mainWindow: BrowserWindow | null = null;
 let backendProcess: ChildProcess | null = null;
+let tray: Tray | null = null;
+let isQuitting = false;
+let reminderTimer: NodeJS.Timeout | null = null;
 
 // ── Backend Lifecycle ──
 
@@ -63,6 +66,53 @@ function stopBackend() {
   }
 }
 
+// ── Tray ──
+
+function createTray() {
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'icon.png')
+    : path.join(__dirname, '..', 'public', 'icon.png');
+
+  let icon: Electron.NativeImage;
+  try {
+    icon = nativeImage.createFromPath(iconPath);
+    if (icon.isEmpty()) throw new Error('empty icon');
+  } catch {
+    icon = nativeImage.createEmpty();
+  }
+
+  tray = new Tray(icon);
+  tray.setToolTip('个人图书管理系统');
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '显示主窗口',
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      },
+    },
+    { type: 'separator' },
+    {
+      label: '退出',
+      click: () => {
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setContextMenu(contextMenu);
+
+  tray.on('double-click', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
 // ── Window ──
 
 function createWindow() {
@@ -88,6 +138,12 @@ function createWindow() {
 
   mainWindow.on('ready-to-show', () => mainWindow?.show());
   mainWindow.on('closed', () => { mainWindow = null; });
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow?.hide();
+    }
+  });
 
   if (app.isPackaged) {
     setupAutoUpdater(mainWindow);
@@ -100,11 +156,20 @@ function registerIpcHandlers() {
   ipcMain.handle('dialog:openFile', async () => {
     if (!mainWindow) return null;
     const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ['openFile'],
+      properties: ['openFile', 'multiSelections'],
       filters: [
         { name: 'Ebooks', extensions: ['pdf', 'epub', 'txt', 'mobi'] },
         { name: 'All Files', extensions: ['*'] },
       ],
+    });
+    if (result.canceled) return null;
+    return result.filePaths[0];
+  });
+
+  ipcMain.handle('dialog:selectDirectory', async () => {
+    if (!mainWindow) return null;
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory'],
     });
     if (result.canceled) return null;
     return result.filePaths[0];
@@ -120,6 +185,40 @@ function registerIpcHandlers() {
     else mainWindow?.maximize();
   });
   ipcMain.on('window:close', () => mainWindow?.close());
+
+  ipcMain.on('reminder:schedule', (_event, timeStr: string) => {
+    if (reminderTimer) clearInterval(reminderTimer);
+
+    const [hours, minutes] = timeStr.split(':').map(Number);
+
+    const checkAndNotify = () => {
+      const now = new Date();
+      if (now.getHours() === hours && now.getMinutes() === minutes) {
+        const notification = new Notification({
+          title: '阅读提醒',
+          body: '该读书啦！打开你的图书管理系统继续阅读吧。',
+          silent: false,
+        });
+        notification.show();
+        notification.on('click', () => {
+          if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        });
+      }
+    };
+
+    reminderTimer = setInterval(checkAndNotify, 60000);
+    checkAndNotify();
+  });
+
+  ipcMain.on('reminder:cancel', () => {
+    if (reminderTimer) {
+      clearInterval(reminderTimer);
+      reminderTimer = null;
+    }
+  });
 }
 
 // ── App Lifecycle ──
@@ -133,15 +232,16 @@ app.whenReady().then(async () => {
     console.error('Failed to start backend:', err);
   }
 
+  createTray();
   createWindow();
 });
 
 app.on('window-all-closed', () => {
-  stopBackend();
-  app.quit();
+  // Don't quit when window closes — app stays in tray
 });
 
 app.on('before-quit', () => {
+  isQuitting = true;
   stopBackend();
 });
 

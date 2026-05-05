@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Integer, SmallInteger, String, Text
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Float, Integer, SmallInteger, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -26,6 +26,8 @@ class Book(Base):
     rating = Column(SmallInteger)
     is_favorite = Column(Boolean, default=False, index=True)
     summary = Column(Text)
+    series_name = Column(String(200), index=True)
+    series_number = Column(Float)
     metadata_enriched = Column(Boolean, default=False)
     metadata_source = Column(String(20), default="file")
     open_library_id = Column(String(50))

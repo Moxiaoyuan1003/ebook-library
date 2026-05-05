@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 class BookCreate(BaseModel):
     title: str = Field(..., max_length=500)
     author: str | None = Field(None, max_length=300)
-    isbn: str | None = Field(None, max_length=20)
+    isbn: str | None = Field(None, max_length=50)
     publisher: str | None = Field(None, max_length=200)
     publish_date: datetime | None = None
     file_path: str
@@ -17,13 +17,15 @@ class BookCreate(BaseModel):
 class BookUpdate(BaseModel):
     title: str | None = Field(None, max_length=500)
     author: str | None = Field(None, max_length=300)
-    isbn: str | None = Field(None, max_length=20)
+    isbn: str | None = Field(None, max_length=50)
     publisher: str | None = Field(None, max_length=200)
     publish_date: datetime | None = None
     reading_status: str | None = None
     rating: int | None = Field(None, ge=1, le=5)
     is_favorite: bool | None = None
     summary: str | None = None
+    series_name: str | None = Field(None, max_length=200)
+    series_number: float | None = None
 
 
 class BookResponse(BaseModel):
@@ -42,6 +44,8 @@ class BookResponse(BaseModel):
     rating: int | None
     is_favorite: bool
     summary: str | None
+    series_name: str | None = None
+    series_number: float | None = None
     metadata_enriched: bool
     metadata_source: str
     open_library_id: str | None

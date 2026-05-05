@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Rate, Tag, Input, Tabs, List, message, Spin, Modal } from 'antd';
+import { Button, Rate, Tag, Input, InputNumber, Tabs, List, message, Spin, Modal } from 'antd';
 import {
   ArrowLeftOutlined,
   ReadOutlined,
@@ -8,10 +8,12 @@ import {
   HeartFilled,
   DeleteOutlined,
   ExportOutlined,
+  ShareAltOutlined,
 } from '@ant-design/icons';
 import { useThemeStore } from '../../stores/themeStore';
 import { bookApi, Book } from '../../services/bookApi';
 import { annotationApi, Annotation } from '../../services/annotationApi';
+import ShareCard from '../../components/ShareCard';
 import API_BASE from '../../services/apiConfig';
 
 export default function BookDetailPage() {
@@ -23,11 +25,18 @@ export default function BookDetailPage() {
   const [tags, setTags] = useState<{ id: string; name: string; color: string }[]>([]);
   const [newTag, setNewTag] = useState('');
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [seriesName, setSeriesName] = useState('');
+  const [seriesNumber, setSeriesNumber] = useState<number | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     if (!bookId) return;
     Promise.all([
-      bookApi.get(bookId).then((r) => setBook(r.data)),
+      bookApi.get(bookId).then((r) => {
+        setBook(r.data);
+        setSeriesName(r.data.series_name || '');
+        setSeriesNumber(r.data.series_number);
+      }),
       bookApi.getTags(bookId).then((r) => setTags(r.data.tags)).catch(() => {}),
       annotationApi.list(bookId).then((r) => setAnnotations(r.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
@@ -70,6 +79,19 @@ export default function BookDetailPage() {
     if (!bookId || !book) return;
     await bookApi.update(bookId, { is_favorite: !book.is_favorite });
     setBook({ ...book, is_favorite: !book.is_favorite });
+  };
+
+  const handleSaveSeries = async () => {
+    if (!bookId) return;
+    try {
+      await bookApi.update(bookId, {
+        series_name: seriesName || null,
+        series_number: seriesNumber,
+      });
+      message.success('系列信息已保存');
+    } catch {
+      message.error('保存失败');
+    }
   };
 
   if (loading) {
@@ -139,6 +161,11 @@ export default function BookDetailPage() {
               ISBN: {book.isbn}
             </div>
           )}
+          {book.series_name && (
+            <div style={{ color: tokens.textSecondary, fontSize: 13, marginBottom: 12 }}>
+              系列: {book.series_name} {book.series_number ? `#${book.series_number}` : ''}
+            </div>
+          )}
 
           <Rate
             value={book.rating || 0}
@@ -163,6 +190,28 @@ export default function BookDetailPage() {
               onBlur={handleAddTag}
               style={{ width: 80 }}
             />
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 12 }}>
+            <Input
+              size="small"
+              placeholder="系列名称"
+              value={seriesName}
+              onChange={(e) => setSeriesName(e.target.value)}
+              style={{ width: 150 }}
+            />
+            <InputNumber
+              size="small"
+              placeholder="卷号"
+              value={seriesNumber}
+              onChange={(v) => setSeriesNumber(v)}
+              min={0}
+              step={0.5}
+              style={{ width: 80 }}
+            />
+            <Button size="small" onClick={handleSaveSeries}>
+              保存系列
+            </Button>
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
@@ -201,6 +250,9 @@ export default function BookDetailPage() {
                 导出摘要
               </Button>
             )}
+            <Button icon={<ShareAltOutlined />} onClick={() => setShareOpen(true)}>
+              分享
+            </Button>
             <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
               删除
             </Button>
@@ -277,6 +329,17 @@ export default function BookDetailPage() {
           ]}
         />
       </div>
+
+      {/* Share Modal */}
+      <Modal
+        title="分享卡片"
+        open={shareOpen}
+        onCancel={() => setShareOpen(false)}
+        footer={null}
+        width={420}
+      >
+        <ShareCard book={book} />
+      </Modal>
     </div>
   );
 }

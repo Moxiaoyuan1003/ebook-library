@@ -6,6 +6,7 @@ import {
   StarOutlined,
   CheckCircleOutlined,
   TrophyOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import {
   BarChart,
@@ -72,6 +73,18 @@ export default function StatsPage() {
       value: stats.favorites,
       color: '#ec4899',
     },
+    {
+      icon: <ThunderboltOutlined />,
+      label: '日均进度',
+      value: `${stats.pages_per_day}%`,
+      color: '#8b5cf6',
+    },
+    {
+      icon: <TrophyOutlined />,
+      label: '活跃天数',
+      value: `${stats.active_days}天`,
+      color: '#f59e0b',
+    },
   ];
 
   const formatData = Object.entries(stats.formats).map(([name, value]) => ({
@@ -94,7 +107,7 @@ export default function StatsPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
           gap: 16,
           marginBottom: 24,
         }}

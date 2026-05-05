@@ -37,6 +37,8 @@ export interface CrossBookResponse {
 
 export const aiApi = {
   getConfig: () => api.get<AiConfig>('/config'),
+  saveConfig: (data: { provider?: string; openai_api_key?: string; claude_api_key?: string; ollama_url?: string }) =>
+    api.post('/config', data),
   getStatus: () => api.get<AiStatus>('/status'),
   generateSummary: (bookId: string, forceRegenerate = false) =>
     api.post('/summary', { book_id: bookId, force_regenerate: forceRegenerate }),
@@ -44,4 +46,6 @@ export const aiApi = {
     api.post('/chat', { messages, book_id: bookId }),
   crossBookQuery: (query: string, topK = 20) =>
     searchApi.post<CrossBookResponse>('/cross-book', { query, top_k: topK }),
+  getRecommendations: () =>
+    api.post<{ recommendations: { title: string; author: string; reason: string }[] }>('/recommendations'),
 };

@@ -32,6 +32,48 @@ def get_ai_config():
     }
 
 
+@router.post("/config")
+def save_ai_config(body: dict):
+    import os
+
+    env_path = os.path.join(settings.DATA_DIR or ".", ".env")
+    os.makedirs(os.path.dirname(env_path) if os.path.dirname(env_path) else ".", exist_ok=True)
+
+    lines = []
+    if os.path.exists(env_path):
+        with open(env_path) as f:
+            lines = f.readlines()
+
+    def set_env(lines, key, value):
+        found = False
+        for i, line in enumerate(lines):
+            if line.strip().startswith(f"{key}="):
+                lines[i] = f"{key}={value}\n"
+                found = True
+                break
+        if not found:
+            lines.append(f"{key}={value}\n")
+        return lines
+
+    if "provider" in body:
+        lines = set_env(lines, "AI_PROVIDER", body["provider"])
+        settings.AI_PROVIDER = body["provider"]
+    if "openai_api_key" in body:
+        lines = set_env(lines, "OPENAI_API_KEY", body["openai_api_key"])
+        settings.OPENAI_API_KEY = body["openai_api_key"]
+    if "claude_api_key" in body:
+        lines = set_env(lines, "CLAUDE_API_KEY", body["claude_api_key"])
+        settings.CLAUDE_API_KEY = body["claude_api_key"]
+    if "ollama_url" in body:
+        lines = set_env(lines, "OLLAMA_BASE_URL", body["ollama_url"])
+        settings.OLLAMA_BASE_URL = body["ollama_url"]
+
+    with open(env_path, "w") as f:
+        f.writelines(lines)
+
+    return {"status": "ok"}
+
+
 @router.get("/status")
 async def ai_status():
     """Return current network state and which AI provider would be used."""
@@ -214,3 +256,52 @@ async def delete_reading_session(
     db.delete(session)
     db.commit()
     return {"status": "deleted"}
+
+
+@router.post("/recommendations")
+async def get_recommendations(db: Session = Depends(get_db)):
+    from app.models import Book
+
+    books = db.query(Book).filter(Book.reading_status.in_(["reading", "finished"])).all()
+    if not books:
+        return {"recommendations": []}
+
+    favorites = [b for b in books if b.is_favorite]
+    recent = sorted(books, key=lambda b: b.created_at or datetime.min, reverse=True)[:10]
+
+    book_list = []
+    for b in (favorites + recent)[:15]:
+        book_list.append(f"- {b.title}" + (f" ({b.author})" if b.author else ""))
+
+    context = "用户最近阅读和收藏的书籍：\n" + "\n".join(book_list)
+
+    factory = _get_ai_factory()
+    try:
+        ai_service, _ = await factory.get_service()
+    except AIServiceUnavailableError:
+        return {"recommendations": []}
+
+    prompt = (
+        "基于用户阅读偏好，推荐5本可能感兴趣的书。"
+        "请严格按以下JSON数组格式返回，不要包含其他文字：\n"
+        '[{"title":"书名","author":"作者","reason":"推荐理由"}]'
+    )
+
+    try:
+        response = await ai_service.chat(
+            messages=[{"role": "user", "content": prompt}],
+            context=context,
+        )
+        import json
+
+        # Extract JSON from response
+        start = response.find("[")
+        end = response.rfind("]") + 1
+        if start >= 0 and end > start:
+            recommendations = json.loads(response[start:end])
+        else:
+            recommendations = []
+    except Exception:
+        recommendations = []
+
+    return {"recommendations": recommendations}

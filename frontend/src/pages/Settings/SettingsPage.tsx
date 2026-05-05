@@ -1,4 +1,4 @@
-import { Tabs, Card, Typography, List, Button, Popconfirm, message, Empty } from 'antd';
+import { Tabs, Card, Typography, List, Button, Popconfirm, message, Empty, Switch, TimePicker } from 'antd';
 import { useState, useEffect } from 'react';
 import {
   SettingOutlined,
@@ -9,11 +9,14 @@ import {
   InfoCircleOutlined,
   DeleteOutlined,
   CloudDownloadOutlined,
+  BellOutlined,
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import AiConfig from './AiConfig';
 import BackupSettings from './BackupSettings';
 import UpdateChecker from '../../components/UpdateChecker';
 import { useThemeStore } from '../../stores/themeStore';
+import { useReminderStore } from '../../stores/reminderStore';
 import axios from 'axios';
 import API_BASE from '../../services/apiConfig';
 
@@ -184,12 +187,62 @@ function AppearanceSettings() {
   );
 }
 
+function ReminderSettings() {
+  const { enabled, time, setEnabled, setTime } = useReminderStore();
+  const electronAPI = (window as any).electronAPI;
+
+  const handleToggle = (checked: boolean) => {
+    setEnabled(checked);
+    if (checked) {
+      electronAPI?.scheduleReminder?.(time);
+      message.success('阅读提醒已开启');
+    } else {
+      electronAPI?.cancelReminder?.();
+      message.info('阅读提醒已关闭');
+    }
+  };
+
+  const handleTimeChange = (t: dayjs.Dayjs | null) => {
+    if (t) {
+      const timeStr = t.format('HH:mm');
+      setTime(timeStr);
+      if (enabled) {
+        electronAPI?.scheduleReminder?.(timeStr);
+      }
+    }
+  };
+
+  return (
+    <Card title="阅读提醒">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+        <Switch checked={enabled} onChange={handleToggle} />
+        <Text>{enabled ? '提醒已开启' : '提醒已关闭'}</Text>
+      </div>
+      {enabled && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Text>提醒时间：</Text>
+          <TimePicker
+            value={dayjs(time, 'HH:mm')}
+            format="HH:mm"
+            onChange={handleTimeChange}
+            allowClear={false}
+          />
+        </div>
+      )}
+      <Paragraph type="secondary" style={{ marginTop: 16 }}>
+        开启后将在设定时间通过系统通知提醒你阅读。
+      </Paragraph>
+    </Card>
+  );
+}
+
 export default function SettingsPage() {
   const items = [
     { key: 'ai', label: 'AI 配置', icon: <SettingOutlined />, children: <AiConfig /> },
     { key: 'import', label: '导入管理', icon: <ImportOutlined />, children: <ImportSettings /> },
     { key: 'shelves', label: '书架管理', icon: <FolderOutlined />, children: <ShelfManager /> },
     { key: 'appearance', label: '外观', icon: <BgColorsOutlined />, children: <AppearanceSettings /> },
+    { key: 'reminder', label: '阅读提醒', icon: <BellOutlined />, children: <ReminderSettings /> },
     { key: 'backup', label: '数据管理', icon: <CloudDownloadOutlined />, children: <BackupSettings /> },
     { key: 'update', label: '更新', icon: <SyncOutlined />, children: <UpdateChecker /> },
     { key: 'about', label: '关于', icon: <InfoCircleOutlined />, children: <AboutPage /> },
