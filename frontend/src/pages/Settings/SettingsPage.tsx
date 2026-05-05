@@ -8,8 +8,10 @@ import {
   SyncOutlined,
   InfoCircleOutlined,
   DeleteOutlined,
+  CloudDownloadOutlined,
 } from '@ant-design/icons';
 import AiConfig from './AiConfig';
+import BackupSettings from './BackupSettings';
 import UpdateChecker from '../../components/UpdateChecker';
 import { useThemeStore } from '../../stores/themeStore';
 import axios from 'axios';
@@ -188,6 +190,7 @@ export default function SettingsPage() {
     { key: 'import', label: '导入管理', icon: <ImportOutlined />, children: <ImportSettings /> },
     { key: 'shelves', label: '书架管理', icon: <FolderOutlined />, children: <ShelfManager /> },
     { key: 'appearance', label: '外观', icon: <BgColorsOutlined />, children: <AppearanceSettings /> },
+    { key: 'backup', label: '数据管理', icon: <CloudDownloadOutlined />, children: <BackupSettings /> },
     { key: 'update', label: '更新', icon: <SyncOutlined />, children: <UpdateChecker /> },
     { key: 'about', label: '关于', icon: <InfoCircleOutlined />, children: <AboutPage /> },
   ];

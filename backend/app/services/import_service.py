@@ -28,6 +28,11 @@ class ImportService:
 
     def import_file(self, file_path: str) -> Book | None:
         """Import a single file."""
+        # Check for duplicates
+        existing = self.db.query(Book).filter(Book.file_path == file_path).first()
+        if existing:
+            return existing
+
         parsed = self.parser_registry.parse(file_path)
         if parsed is None:
             return None

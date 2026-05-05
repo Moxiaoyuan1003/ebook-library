@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import ai, annotations, books, bookshelves, export, knowledge_cards, search, stats, system, tags, ws
+from app.api import ai, annotations, backup, books, bookshelves, export, knowledge_cards, search, stats, system, tags, ws
 from app.core.config import settings
 
 app = FastAPI(
@@ -28,6 +28,7 @@ app.include_router(knowledge_cards.router, prefix="/api/knowledge-cards", tags=[
 app.include_router(system.router, prefix="/api/system", tags=["system"])
 app.include_router(export.router, prefix="/api/export", tags=["export"])
 app.include_router(stats.router, prefix="/api/stats", tags=["stats"])
+app.include_router(backup.router, prefix="/api/backup", tags=["backup"])
 
 
 @app.get("/api/health")

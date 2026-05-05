@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Spin } from 'antd';
+import { Spin, Slider } from 'antd';
 import {
   BookOutlined,
   FieldTimeOutlined,
   StarOutlined,
   CheckCircleOutlined,
+  TrophyOutlined,
 } from '@ant-design/icons';
 import {
   BarChart,
@@ -18,12 +19,15 @@ import {
   Cell,
 } from 'recharts';
 import { useThemeStore } from '../../stores/themeStore';
+import { useGoalStore } from '../../stores/goalStore';
 import { statsApi, Stats } from '../../services/statsApi';
 
 const COLORS = ['#667eea', '#f5576c', '#43e97b', '#f59e0b', '#8b5cf6', '#ec4899'];
 
 export default function StatsPage() {
   const tokens = useThemeStore((s) => s.tokens);
+  const dailyGoalMinutes = useGoalStore((s) => s.dailyGoalMinutes);
+  const setDailyGoal = useGoalStore((s) => s.setDailyGoal);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -196,6 +200,42 @@ export default function StatsPage() {
           </div>
           <span style={{ color: tokens.text, fontWeight: 600, fontSize: 18, minWidth: 60 }}>
             {stats.avg_progress}%
+          </span>
+        </div>
+      </div>
+
+      {/* Reading goals */}
+      <div style={{ ...cardStyle, marginTop: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <TrophyOutlined style={{ color: '#f59e0b', fontSize: 20 }} />
+          <h3 style={{ color: tokens.text, margin: 0 }}>每日阅读目标</h3>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ flex: 1 }}>
+            <Slider
+              min={5}
+              max={120}
+              step={5}
+              value={dailyGoalMinutes}
+              onChange={setDailyGoal}
+              marks={{
+                5: '5分',
+                30: '30分',
+                60: '1小时',
+                120: '2小时',
+              }}
+            />
+          </div>
+          <span
+            style={{
+              color: tokens.text,
+              fontWeight: 600,
+              fontSize: 18,
+              minWidth: 80,
+              textAlign: 'right',
+            }}
+          >
+            {dailyGoalMinutes} 分钟
           </span>
         </div>
       </div>

@@ -188,6 +188,48 @@ def delete_bookmark(book_id: UUID, page_number: int, db: Session = Depends(get_d
     return {"ok": True}
 
 
+@router.get("/{book_id}/notes/export")
+def export_notes(book_id: UUID, db: Session = Depends(get_db)):
+    from fastapi.responses import PlainTextResponse
+
+    from app.models import Annotation
+
+    service = BookService(db)
+    book = service.get_book(book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    annotations = (
+        db.query(Annotation)
+        .filter(Annotation.book_id == book_id)
+        .order_by(Annotation.page_number)
+        .all()
+    )
+
+    lines = [f"# 《{book.title}》读书笔记\n"]
+
+    highlights = [a for a in annotations if a.type == "highlight"]
+    notes = [a for a in annotations if a.type == "note"]
+
+    if highlights:
+        lines.append("## 高亮\n")
+        for h in highlights:
+            lines.append(f"- **P.{h.page_number}** \"{h.selected_text}\"\n")
+
+    if notes:
+        lines.append("## 批注\n")
+        for n in notes:
+            lines.append(f"- **P.{n.page_number}** \"{n.selected_text}\"\n")
+            if n.note_content:
+                lines.append(f"  > {n.note_content}\n")
+
+    return PlainTextResponse(
+        "".join(lines),
+        media_type="text/markdown",
+        headers={"Content-Disposition": f"attachment; filename={book.title}_notes.md"},
+    )
+
+
 @router.get("/{book_id}/tags")
 def get_book_tags(book_id: UUID, db: Session = Depends(get_db)):
     service = BookService(db)

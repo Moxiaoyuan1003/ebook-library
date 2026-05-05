@@ -9,6 +9,7 @@ import {
   FileTextOutlined,
   ExportOutlined,
   BarChartOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useBookStore } from '../../stores/bookStore';
@@ -71,6 +72,7 @@ export default function Sidebar() {
     { type: 'divider' as const },
     { key: 'stats', icon: <BarChartOutlined />, label: '阅读统计' },
     { key: 'knowledge-cards', icon: <FileTextOutlined />, label: '知识卡片' },
+    { key: 'timeline', icon: <ClockCircleOutlined />, label: '批注时间线' },
     { key: 'export', icon: <ExportOutlined />, label: '数据导出' },
   ];
 
@@ -91,6 +93,8 @@ export default function Sidebar() {
       navigate('/stats');
     } else if (key === 'knowledge-cards') {
       navigate('/knowledge-cards');
+    } else if (key === 'timeline') {
+      navigate('/timeline');
     } else if (key === 'export') {
       navigate('/export');
     } else if (key.startsWith('shelf-')) {

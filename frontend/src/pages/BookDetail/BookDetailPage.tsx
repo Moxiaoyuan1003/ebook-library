@@ -216,6 +216,18 @@ export default function BookDetailPage() {
               key: 'notes',
               label: `笔记 (${annotations.length})`,
               children: (
+                <>
+                {annotations.length > 0 && (
+                  <div style={{ marginBottom: 12, textAlign: 'right' }}>
+                    <Button
+                      size="small"
+                      icon={<ExportOutlined />}
+                      onClick={() => window.open(`${API_BASE}/api/books/${bookId}/notes/export`)}
+                    >
+                      导出 Markdown
+                    </Button>
+                  </div>
+                )}
                 <List
                   dataSource={annotations}
                   locale={{ emptyText: '暂无笔记' }}
@@ -246,6 +258,7 @@ export default function BookDetailPage() {
                     </List.Item>
                   )}
                 />
+                </>
               ),
             },
             {
