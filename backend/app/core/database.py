@@ -59,6 +59,26 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
+def _add_missing_columns(engine):
+    """Add columns that were added after the initial schema creation."""
+    import sqlalchemy as sa
+
+    columns_to_add = [
+        ("books", "series_name", "TEXT"),
+        ("books", "series_number", "REAL"),
+        ("bookshelves", "rules", "TEXT"),
+    ]
+
+    with engine.connect() as conn:
+        inspector = sa.inspect(conn)
+        for table, column, col_type in columns_to_add:
+            if table in inspector.get_table_names():
+                existing = {c["name"] for c in inspector.get_columns(table)}
+                if column not in existing:
+                    conn.execute(sa.text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
+        conn.commit()
+
+
 def init_database():
     """Initialize the database (create tables, etc.).
 
@@ -83,3 +103,6 @@ def init_database():
     patch_uuid_columns_for_sqlite(Base)
 
     Base.metadata.create_all(bind=engine)
+
+    # Add missing columns to existing tables (schema migration for SQLite)
+    _add_missing_columns(engine)
