@@ -101,6 +101,23 @@ const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(
         }
       });
 
+      // Click-to-navigate inside EPUB iframe
+      rendition.on('click', (_event: any, contents: any) => {
+        if (!contents?.window) return;
+        const doc = contents.document || contents.window.document;
+        if (!doc) return;
+        doc.addEventListener('click', (e: MouseEvent) => {
+          // Ignore if user selected text
+          const sel = contents.window.getSelection();
+          if (sel && sel.toString().length > 0) return;
+          const x = e.clientX;
+          const w = contents.window.innerWidth;
+          const ratio = x / w;
+          if (ratio < 0.3) goPrev();
+          else if (ratio > 0.7) goNext();
+        }, true);
+      });
+
       // Load TOC
       let cancelled = false;
 
@@ -166,23 +183,6 @@ const EpubViewer = forwardRef<EpubViewerRef, EpubViewerProps>(
       }),
       [goNext, goPrev, goToHref],
     );
-
-    // Keyboard navigation
-    useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        // Only handle when viewer is focused
-        if (!viewerRef.current?.contains(document.activeElement)) return;
-        if (e.key === 'ArrowLeft') {
-          e.preventDefault();
-          goPrev();
-        } else if (e.key === 'ArrowRight') {
-          e.preventDefault();
-          goNext();
-        }
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [goNext, goPrev]);
 
     return (
       <div

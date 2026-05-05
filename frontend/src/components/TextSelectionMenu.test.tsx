@@ -9,6 +9,8 @@ const defaultProps = {
   onAskAI: vi.fn(),
   onHighlight: vi.fn(),
   onCopy: vi.fn(),
+  onAddNote: vi.fn(),
+  onAddCard: vi.fn(),
   onClose: vi.fn(),
 };
 

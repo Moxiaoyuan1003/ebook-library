@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Input, Segmented, Button, Pagination, Collapse } from 'antd';
-import { AppstoreOutlined, UnorderedListOutlined, PictureOutlined, ImportOutlined, BookOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Input, Segmented, Button, Pagination, Collapse, message } from 'antd';
+import { AppstoreOutlined, UnorderedListOutlined, PictureOutlined, ImportOutlined, BookOutlined, ThunderboltOutlined, SyncOutlined } from '@ant-design/icons';
+import { bookApi } from '../../services/bookApi';
 import { useBookStore } from '../../stores/bookStore';
 import { useThemeStore } from '../../stores/themeStore';
 import BookCard from '../../components/BookCard';
@@ -38,6 +39,19 @@ export default function LibraryPage() {
 
   const handleBookClick = (book: Book) => { navigate(`/reader/${book.id}`); };
 
+  const handleEnrichAll = async () => {
+    message.loading('正在获取封面...', 0);
+    try {
+      const res = await bookApi.enrichAll();
+      message.destroy();
+      message.success(`封面获取完成: ${res.data.updated}/${res.data.total} 本更新`);
+      fetchBooks();
+    } catch {
+      message.destroy();
+      message.error('获取封面失败');
+    }
+  };
+
   const filters = [
     { key: 'all', label: '全部', active: !filterStatus && !filterFavorite && !filterShelfId },
     { key: 'recent', label: '最近阅读', active: filterStatus === 'reading' },
@@ -64,6 +78,9 @@ export default function LibraryPage() {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Button type="primary" icon={<ImportOutlined />} onClick={() => setImportOpen(true)}>
               导入
+            </Button>
+            <Button icon={<SyncOutlined />} onClick={handleEnrichAll}>
+              获取封面
             </Button>
             <Input.Search
               placeholder="搜索书名或作者"

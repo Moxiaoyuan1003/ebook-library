@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Dropdown, message, Modal, Rate, Select } from 'antd';
-import { HeartOutlined, HeartFilled, MoreOutlined, ReadOutlined, StarOutlined, DeleteOutlined, FolderOutlined } from '@ant-design/icons';
+import { HeartOutlined, HeartFilled, MoreOutlined, ReadOutlined, StarOutlined, DeleteOutlined, FolderOutlined, SyncOutlined } from '@ant-design/icons';
 import { useThemeStore } from '../stores/themeStore';
 import { useBookStore } from '../stores/bookStore';
-import { Book } from '../services/bookApi';
+import { Book, bookApi } from '../services/bookApi';
 import axios from 'axios';
 import API_BASE from '../services/apiConfig';
 
@@ -50,10 +50,20 @@ export default function BookCard({ book, onClick }: BookCardProps) {
 
   const coverUrl = book.cover_url ? `${API_BASE}/covers/${book.cover_url}` : null;
 
+  const handleRefreshCover = async () => {
+    try {
+      message.loading('正在获取封面...');
+      await bookApi.enrich(book.id);
+      message.success('封面已更新');
+      useBookStore.getState().fetchBooks();
+    } catch { message.error('获取封面失败'); }
+  };
+
   const menuItems = [
     { key: 'read', icon: <ReadOutlined />, label: '阅读', onClick: () => onClick(book) },
     { key: 'fav', icon: book.is_favorite ? <HeartFilled style={{ color: '#ff4d4f' }} /> : <HeartOutlined />, label: book.is_favorite ? '取消收藏' : '收藏', onClick: () => toggleFavorite(book) },
     { key: 'shelf', icon: <FolderOutlined />, label: '加入书架', onClick: () => { fetchShelves(); setShelfModalOpen(true); } },
+    { key: 'cover', icon: <SyncOutlined />, label: '刷新封面', onClick: handleRefreshCover },
     { key: 'delete', icon: <DeleteOutlined />, label: '删除', danger: true, onClick: () => { Modal.confirm({ title: '确认删除?', onOk: () => deleteBook(book.id) }); } },
   ];
 

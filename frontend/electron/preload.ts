@@ -10,6 +10,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimize: () => ipcRenderer.send('window:minimize'),
   maximize: () => ipcRenderer.send('window:maximize'),
   close: () => ipcRenderer.send('window:close'),
+  resize: (bounds: { x?: number; y?: number; width?: number; height?: number }) =>
+    ipcRenderer.send('window:resize', bounds),
+  getBounds: (): Promise<{ x: number; y: number; width: number; height: number }> =>
+    ipcRenderer.invoke('window:getBounds'),
 
   // Reminders
   scheduleReminder: (time: string) => ipcRenderer.send('reminder:schedule', time),

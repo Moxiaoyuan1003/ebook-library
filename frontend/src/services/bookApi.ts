@@ -60,4 +60,6 @@ export const bookApi = {
     api.get<{ id: string; title: string; author: string | null; cover_url: string | null; file_format: string; reading_status: string; rating: number | null; is_favorite: boolean }[]>(`/bookshelves/${shelfId}/books`),
   getSeriesList: () =>
     api.get<{ name: string; count: number }[]>('/books/series/list'),
+  enrich: (id: string) => api.post<Book>(`/books/${id}/enrich`),
+  enrichAll: () => api.post<{ updated: number; total: number }>('/books/enrich-all'),
 };

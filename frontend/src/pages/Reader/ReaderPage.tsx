@@ -88,10 +88,16 @@ export default function ReaderPage() {
   }, []);
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    const handler = () => {
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      setToolbarVisible(true);
+    };
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
+
+  const anyPanelOpen = showToc || showAnnotations || showChat || noteModalOpen || cardModalOpen;
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -99,9 +105,11 @@ export default function ReaderPage() {
     if (y < 60) {
       setToolbarVisible(true);
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = setTimeout(() => setToolbarVisible(false), 3000);
+      hideTimerRef.current = setTimeout(() => {
+        if (!anyPanelOpen) setToolbarVisible(false);
+      }, 3000);
     }
-  }, []);
+  }, [anyPanelOpen]);
 
   // ── Navigation helpers ──
   const goPrev = useCallback(() => {
@@ -330,10 +338,10 @@ export default function ReaderPage() {
         display: 'flex', alignItems: 'center', padding: '8px 16px',
         background: tokens.header, borderBottom: `1px solid ${tokens.border}`, gap: 8,
         position: 'relative', zIndex: 50,
-        opacity: toolbarVisible ? 1 : 0,
-        transform: toolbarVisible ? 'translateY(0)' : 'translateY(-100%)',
+        opacity: (toolbarVisible || anyPanelOpen) ? 1 : 0,
+        transform: (toolbarVisible || anyPanelOpen) ? 'translateY(0)' : 'translateY(-100%)',
         transition: 'opacity 0.3s, transform 0.3s',
-        pointerEvents: toolbarVisible ? 'auto' : 'none',
+        pointerEvents: (toolbarVisible || anyPanelOpen) ? 'auto' : 'none',
       }}>
         <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/')} title="返回书库" />
         <span style={{ flex: 1, textAlign: 'center', fontSize: 14, color: tokens.text }}>{book.title}</span>
@@ -449,7 +457,9 @@ export default function ReaderPage() {
           </div>
         </div>
 
-        <div style={{ width: '100%', height: '100%', pointerEvents: 'auto', padding: `0 ${MARGIN_OPTIONS.find((m) => m.key === readerSettings.marginMode)?.value || 48}px` }} onClick={(e) => e.stopPropagation()}>
+        <div
+          style={{ width: '100%', height: '100%', pointerEvents: 'auto', padding: `0 ${MARGIN_OPTIONS.find((m) => m.key === readerSettings.marginMode)?.value || 48}px` }}
+        >
           {isPdf ? (
             <PdfViewer
               ref={pdfRef}

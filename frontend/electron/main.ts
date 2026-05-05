@@ -121,7 +121,9 @@ function createWindow() {
     height: 900,
     minWidth: 1280,
     minHeight: 800,
-    titleBarStyle: 'hiddenInset',
+    ...(process.platform === 'darwin'
+      ? { titleBarStyle: 'hiddenInset' }
+      : { frame: false, transparent: true }),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -186,6 +188,15 @@ function registerIpcHandlers() {
     else mainWindow?.maximize();
   });
   ipcMain.on('window:close', () => mainWindow?.close());
+
+  ipcMain.on('window:resize', (_event, bounds: { x?: number; y?: number; width?: number; height?: number }) => {
+    if (!mainWindow) return;
+    mainWindow.setBounds(bounds);
+  });
+
+  ipcMain.handle('window:getBounds', () => {
+    return mainWindow?.getBounds();
+  });
 
   ipcMain.on('reminder:schedule', (_event, timeStr: string) => {
     if (reminderTimer) clearInterval(reminderTimer);

@@ -112,7 +112,43 @@ async def import_file(body: FilePathBody, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
     if not book:
         raise HTTPException(status_code=400, detail="Unsupported file format")
+    db.commit()
+    db.refresh(book)
     return BookResponse.model_validate(book)
+
+
+@router.post("/{book_id}/enrich")
+async def enrich_book(book_id: UUID, db: Session = Depends(get_db)):
+    """Re-fetch metadata and cover for a book."""
+    service = BookService(db)
+    book = service.get_book(book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    from app.services.enrichment import MetadataEnrichmentService
+    book.metadata_enriched = False
+    book.cover_url = None
+    enricher = MetadataEnrichmentService()
+    await enricher.enrich(db, book)
+    db.commit()
+    db.refresh(book)
+    return BookResponse.model_validate(book)
+
+
+@router.post("/enrich-all")
+async def enrich_all_books(db: Session = Depends(get_db)):
+    """Re-fetch covers for all books without covers."""
+    from app.services.enrichment import MetadataEnrichmentService
+    enricher = MetadataEnrichmentService()
+    books = db.query(Book).all()
+    updated = 0
+    for book in books:
+        if not book.cover_url:
+            book.metadata_enriched = False
+            await enricher.enrich(db, book)
+            if book.cover_url:
+                updated += 1
+    db.commit()
+    return {"updated": updated, "total": len(books)}
 
 
 @router.post("/import/directory")

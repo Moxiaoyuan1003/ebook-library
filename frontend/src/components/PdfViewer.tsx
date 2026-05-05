@@ -157,6 +157,30 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(
       return () => container.removeEventListener('keydown', handleKeyDown);
     }, [currentPage, numPages, goToPage, handleZoomIn, handleZoomOut]);
 
+    // Mouse wheel page turning
+    useEffect(() => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const handleWheel = (e: WheelEvent) => {
+        // Only turn page when scrolled to top/bottom edge
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const atTop = scrollTop <= 0;
+        const atBottom = scrollTop + clientHeight >= scrollHeight - 2;
+
+        if (e.deltaY > 0 && atBottom) {
+          e.preventDefault();
+          goToPage(currentPage + 1);
+        } else if (e.deltaY < 0 && atTop) {
+          e.preventDefault();
+          goToPage(currentPage - 1);
+        }
+      };
+
+      container.addEventListener('wheel', handleWheel, { passive: false });
+      return () => container.removeEventListener('wheel', handleWheel);
+    }, [currentPage, numPages, goToPage]);
+
     // Text selection handler
     useEffect(() => {
       const container = containerRef.current;

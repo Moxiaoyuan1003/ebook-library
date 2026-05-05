@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote_plus
@@ -7,176 +8,226 @@ from urllib.parse import quote_plus
 import httpx
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.book import Book
 
 logger = logging.getLogger(__name__)
 
-COVERS_DIR = Path("data/covers")
+_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept-Language": "zh-CN,zh;q=0.9",
+}
 
 
 class MetadataEnrichmentService:
-    """Enriches book metadata from Google Books and Open Library APIs."""
+    """Enriches book metadata and covers from multiple sources (China-first)."""
 
-    COVERS_DIR = COVERS_DIR
+    @property
+    def COVERS_DIR(self) -> Path:
+        return Path(settings.get_covers_dir())
 
-    def _google_books_url(self, isbn: str) -> str:
-        """Build Google Books API URL for ISBN lookup."""
-        return f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}"
+    # ── HTTP helpers ──
 
-    def _open_library_search_url(self, title: str, author: str) -> str:
-        """Build Open Library search API URL."""
-        params = f"title={quote_plus(title)}&limit=1"
-        if author and author.strip():
-            params += f"&author={quote_plus(author)}"
-        return f"https://openlibrary.org/search.json?{params}"
+    async def _http_get_json(self, url: str, timeout: float = 10.0) -> dict[str, Any] | None:
+        try:
+            async with httpx.AsyncClient(follow_redirects=True, headers=_HEADERS) as client:
+                r = await client.get(url, timeout=timeout)
+                if r.status_code == 200:
+                    return r.json()
+        except Exception:
+            pass
+        return None
 
-    async def _http_get(self, url: str) -> dict[str, Any] | None:
-        """HTTP GET with retry logic and exponential backoff for 429 responses.
+    async def _http_get_text(self, url: str, timeout: float = 10.0) -> str | None:
+        try:
+            async with httpx.AsyncClient(follow_redirects=True, headers=_HEADERS) as client:
+                r = await client.get(url, timeout=timeout)
+                if r.status_code == 200:
+                    return r.text
+        except Exception:
+            pass
+        return None
 
-        Max 3 retries total. Doubles the wait time on each 429 retry.
-        """
-        max_retries = 3
-        backoff = 1.0  # initial backoff in seconds
-
-        for attempt in range(max_retries):
-            try:
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(url, timeout=5.0)
-
-                    if response.status_code == 200:
-                        return response.json()
-
-                    if response.status_code == 429:
-                        if attempt < max_retries - 1:
-                            logger.warning(
-                                "Rate limited (429) on %s, retrying in %.1fs",
-                                url,
-                                backoff,
-                            )
-                            await asyncio.sleep(backoff)
-                            backoff *= 2
-                            continue
-                        else:
-                            logger.error("Rate limited (429) on %s after %d retries", url, max_retries)
-                            return None
-
-                    logger.warning("HTTP %d from %s", response.status_code, url)
-                    return None
-
-            except httpx.TimeoutException:
-                logger.warning("Timeout fetching %s (attempt %d/%d)", url, attempt + 1, max_retries)
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(backoff)
-                    backoff *= 2
-                    continue
-                return None
-            except Exception as exc:
-                logger.error("Error fetching %s: %s", url, exc)
-                return None
-
+    async def _http_get_bytes(self, url: str, timeout: float = 15.0) -> bytes | None:
+        try:
+            async with httpx.AsyncClient(follow_redirects=True, headers=_HEADERS) as client:
+                r = await client.get(url, timeout=timeout)
+                if r.status_code == 200 and len(r.content) > 1000:
+                    return r.content
+        except Exception:
+            pass
         return None
 
     async def _download_cover(self, url: str, book_id) -> str | None:
-        """Download a cover image and save it locally.
-
-        Returns the local file path relative to the project, or None on failure.
-        """
+        data = await self._http_get_bytes(url, timeout=15.0)
+        if not data:
+            return None
         try:
-            COVERS_DIR.mkdir(parents=True, exist_ok=True)
-
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url, timeout=5.0)
-                if response.status_code != 200:
-                    logger.warning("Failed to download cover from %s: HTTP %d", url, response.status_code)
-                    return None
-
-                content_type = response.headers.get("content-type", "")
-                if "jpeg" in content_type or "jpg" in content_type:
-                    ext = "jpg"
-                elif "png" in content_type:
-                    ext = "png"
-                elif "webp" in content_type:
-                    ext = "webp"
-                else:
-                    # Default: try to detect from URL or fall back to jpg
-                    url_lower = url.lower()
-                    if ".png" in url_lower:
-                        ext = "png"
-                    elif ".webp" in url_lower:
-                        ext = "webp"
-                    else:
-                        ext = "jpg"
-
-                cover_path = COVERS_DIR / f"{book_id}.{ext}"
-                cover_path.write_bytes(response.content)
-                logger.info("Downloaded cover for book %s to %s", book_id, cover_path)
-                return f"{book_id}.{ext}"
-
+            self.COVERS_DIR.mkdir(parents=True, exist_ok=True)
+            ext = "jpg"
+            url_lower = url.lower()
+            if ".png" in url_lower:
+                ext = "png"
+            elif ".webp" in url_lower:
+                ext = "webp"
+            cover_path = self.COVERS_DIR / f"{book_id}.{ext}"
+            cover_path.write_bytes(data)
+            logger.info("Downloaded cover for book %s", book_id)
+            return f"{book_id}.{ext}"
         except Exception as exc:
-            logger.error("Error downloading cover from %s: %s", url, exc)
+            logger.error("Error saving cover for %s: %s", book_id, exc)
             return None
 
-    async def enrich(self, db: Session, book: Book) -> bool:
-        """Enrich a book's metadata from external APIs.
+    # ── Local file extraction ──
 
-        Returns False if the book is already enriched.
-        Returns True after attempting enrichment (whether or not new data was found).
-        """
+    def _extract_cover_from_file(self, book: Book) -> str | None:
+        try:
+            if not book.file_path or not Path(book.file_path).exists():
+                return None
+            from app.services.parser.registry import ParserRegistry
+            parsed = ParserRegistry().parse(book.file_path)
+            if parsed and parsed.cover_image and len(parsed.cover_image) > 1000:
+                self.COVERS_DIR.mkdir(parents=True, exist_ok=True)
+                cover_path = self.COVERS_DIR / f"{book.id}.png"
+                cover_path.write_bytes(parsed.cover_image)
+                logger.info("Extracted cover from file for book %s", book.id)
+                return f"{book.id}.png"
+        except Exception as exc:
+            logger.warning("File cover extraction failed for %s: %s", book.title, exc)
+        return None
+
+    # ── Douban (primary online source, works in China) ──
+
+    async def _cover_from_douban(self, title: str, author: str, book_id) -> str | None:
+        """Search Douban for book cover by ISBN or title+author."""
+        # Try ISBN first if available
+        for query in [f"{title} {author}".strip(), title]:
+            if not query:
+                continue
+            html = await self._http_get_text(
+                f"https://www.douban.com/search?cat=1001&q={quote_plus(query)}",
+                timeout=10.0,
+            )
+            if not html:
+                continue
+            # Extract cover image URLs from search results
+            imgs = re.findall(
+                r'src="(https?://[^"]*?doubanio[^"]*?subject[^"]*?\.(?:jpg|png|webp))"',
+                html,
+            )
+            if imgs:
+                # Get large version
+                cover_url = imgs[0].replace("/s/public/", "/l/public/")
+                result = await self._download_cover(cover_url, book_id)
+                if result:
+                    return result
+        return None
+
+    # ── Google Books (fallback, may not work in China) ──
+
+    async def _cover_from_google_books(self, isbn: str, book_id) -> str | None:
+        data = await self._http_get_json(
+            f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}", timeout=8.0
+        )
+        if data and data.get("totalItems", 0) > 0:
+            il = data["items"][0].get("volumeInfo", {}).get("imageLinks", {})
+            thumb = il.get("thumbnail")
+            if thumb:
+                return await self._download_cover(thumb.replace("http://", "https://"), book_id)
+        return None
+
+    # ── Open Library (fallback) ──
+
+    async def _cover_from_open_library(self, title: str, author: str, book_id) -> str | None:
+        params = f"title={quote_plus(title)}&limit=1"
+        if author and author.strip():
+            params += f"&author={quote_plus(author)}"
+        data = await self._http_get_json(
+            f"https://openlibrary.org/search.json?{params}", timeout=10.0
+        )
+        if data and data.get("numFound", 0) > 0:
+            cover_i = data["docs"][0].get("cover_i")
+            if cover_i:
+                return await self._download_cover(
+                    f"https://covers.openlibrary.org/b/id/{cover_i}-L.jpg", book_id
+                )
+        return None
+
+    # ── Main enrichment ──
+
+    async def enrich(self, db: Session, book: Book) -> bool:
         if book.metadata_enriched:
             return False
 
         found_publisher = None
         found_publish_date = None
-        found_cover_url = None
         source = "none"
 
-        # Strategy 1: Google Books by ISBN
-        if book.isbn and book.isbn.strip():
-            try:
-                google_data = await self._http_get(self._google_books_url(book.isbn))
-                if google_data and google_data.get("totalItems", 0) > 0:
-                    volume_info = google_data["items"][0].get("volumeInfo", {})
-                    found_publisher = volume_info.get("publisher")
-                    found_publish_date = volume_info.get("publishedDate")
-                    image_links = volume_info.get("imageLinks", {})
-                    found_cover_url = image_links.get("thumbnail")
-                    if found_publisher or found_publish_date or found_cover_url:
-                        source = "google"
-            except Exception as exc:
-                logger.warning("Google Books lookup failed for %s: %s", book.isbn, exc)
+        # ── 1. Local file extraction (no network) ──
+        if not book.cover_url:
+            local = self._extract_cover_from_file(book)
+            if local:
+                book.cover_url = local
+                source = "file"
 
-        # Strategy 2: Open Library (if no ISBN or Google didn't return enough)
-        if source == "none":
+        # ── 2. Douban (works in China, primary online source) ──
+        if not book.cover_url:
             try:
-                ol_url = self._open_library_search_url(book.title or "", book.author or "")
-                ol_data = await self._http_get(ol_url)
-                if ol_data and ol_data.get("numFound", 0) > 0:
-                    doc = ol_data["docs"][0]
-                    publishers = doc.get("publisher", [])
-                    found_publisher = publishers[0] if isinstance(publishers, list) and publishers else None
-                    first_year = doc.get("first_publish_year")
-                    if first_year:
-                        found_publish_date = str(first_year)
-                    cover_i = doc.get("cover_i")
-                    if cover_i:
-                        found_cover_url = f"https://covers.openlibrary.org/b/id/{cover_i}-L.jpg"
-                    ol_key = doc.get("open_library_key") or doc.get("key", "")
-                    if ol_key:
-                        book.open_library_id = ol_key
-                    if found_publisher or found_publish_date or found_cover_url:
-                        source = "open_library"
-            except Exception as exc:
-                logger.warning("Open Library lookup failed for %s: %s", book.title, exc)
+                douban = await self._cover_from_douban(
+                    book.title or "", book.author or "", book.id
+                )
+                if douban:
+                    book.cover_url = douban
+                    source = "douban"
+            except Exception:
+                pass
 
-        # Apply discovered fields only where the book currently lacks data
+        # ── 3. Google Books (may timeout in China) ──
+        if not book.cover_url and book.isbn and book.isbn.strip():
+            try:
+                gcover = await self._cover_from_google_books(book.isbn, book.id)
+                if gcover:
+                    book.cover_url = gcover
+                    source = "google"
+                # Also get metadata
+                data = await self._http_get_json(
+                    f"https://www.googleapis.com/books/v1/volumes?q=isbn:{book.isbn}", timeout=8.0
+                )
+                if data and data.get("totalItems", 0) > 0:
+                    vi = data["items"][0].get("volumeInfo", {})
+                    if not book.publisher:
+                        found_publisher = vi.get("publisher")
+                    if not book.publish_date:
+                        found_publish_date = vi.get("publishedDate")
+                    if source == "google" or (not book.cover_url):
+                        il = vi.get("imageLinks", {})
+                        t = il.get("thumbnail")
+                        if t and not book.cover_url:
+                            c = await self._download_cover(t.replace("http://", "https://"), book.id)
+                            if c:
+                                book.cover_url = c
+                                source = "google"
+            except Exception:
+                pass
+
+        # ── 4. Open Library (fallback) ──
+        if not book.cover_url:
+            try:
+                ol = await self._cover_from_open_library(
+                    book.title or "", book.author or "", book.id
+                )
+                if ol:
+                    book.cover_url = ol
+                    source = "open_library"
+            except Exception:
+                pass
+
+        # ── Apply metadata ──
         if found_publisher and not book.publisher:
             book.publisher = found_publisher
         if found_publish_date and not book.publish_date:
-            # publish_date is a DateTime column; store as a date string parsed best-effort
             try:
                 from datetime import datetime
-
-                # publishedDate can be "2023", "2023-01", or "2023-01-15"
                 for fmt in ("%Y-%m-%d", "%Y-%m", "%Y"):
                     try:
                         book.publish_date = datetime.strptime(found_publish_date, fmt)
@@ -184,19 +235,9 @@ class MetadataEnrichmentService:
                     except ValueError:
                         continue
             except Exception:
-                pass  # If parsing fails, skip setting publish_date
-
-        # Download cover if we got a URL and the book doesn't have a local cover yet
-        if found_cover_url and (not book.cover_url):
-            local_path = await self._download_cover(found_cover_url, book.id)
-            if local_path:
-                book.cover_url = local_path
-            else:
-                # Fall back to storing the remote URL
-                book.cover_url = found_cover_url
+                pass
 
         book.metadata_enriched = True
         book.metadata_source = source
-
         db.flush()
         return True

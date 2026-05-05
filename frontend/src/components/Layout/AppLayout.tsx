@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import TopNav from './TopNav';
 import Sidebar from './Sidebar';
 import StatusBar from './StatusBar';
+import ResizeHandles from './ResizeHandles';
 import { useThemeStore } from '../../stores/themeStore';
 import { useThemeVars } from '../../theme/useThemeVars';
 import { useGlobalShortcuts } from '../../hooks/useGlobalShortcuts';
@@ -26,6 +27,7 @@ export default function AppLayout() {
         </main>
       </div>
       <StatusBar />
+      <ResizeHandles />
     </div>
   );
 }
