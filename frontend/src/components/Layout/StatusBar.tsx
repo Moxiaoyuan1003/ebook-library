@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Tag } from 'antd';
 import { useAppStore } from '../../stores/appStore';
+import { useThemeStore } from '../../stores/themeStore';
 
 const providerLabels: Record<string, string> = {
   openai: 'OpenAI',
@@ -13,6 +14,7 @@ export default function StatusBar() {
   const importProgress = useAppStore((state) => state.importProgress);
   const aiStatus = useAppStore((state) => state.aiStatus);
   const fetchAiStatus = useAppStore((state) => state.fetchAiStatus);
+  const tokens = useThemeStore((s) => s.tokens);
 
   useEffect(() => {
     fetchAiStatus();
@@ -32,10 +34,10 @@ export default function StatusBar() {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 16px',
-        background: '#0d0d0d',
-        borderTop: '1px solid #303030',
+        background: tokens.header,
+        borderTop: `1px solid ${tokens.border}`,
         fontSize: 12,
-        color: '#888',
+        color: tokens.textMuted,
       }}
     >
       <span>
