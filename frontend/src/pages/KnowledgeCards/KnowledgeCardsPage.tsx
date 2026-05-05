@@ -1,27 +1,28 @@
 import { useEffect, useState } from 'react';
 import {
-  Card,
   Tag,
   Input,
   Select,
   Button,
-  Empty,
-  Spin,
   Pagination,
   Drawer,
   Modal,
   Form,
   Popconfirm,
   Space,
+  Spin,
   message,
 } from 'antd';
-import { PlusOutlined, DeleteOutlined, FileTextOutlined, LinkOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, FileTextOutlined, EditOutlined } from '@ant-design/icons';
 import { useKnowledgeCardStore } from '../../stores/knowledgeCardStore';
+import { useThemeStore } from '../../stores/themeStore';
 import {
   knowledgeCardApi,
   KnowledgeCard,
   KnowledgeCardCreateData,
 } from '../../services/knowledgeCardApi';
+import EmptyState from '../../components/EmptyState';
+import SkeletonCard from '../../components/SkeletonCard';
 
 const CARD_TYPE_COLORS: Record<string, string> = {
   search_result: 'blue',
@@ -43,6 +44,7 @@ const cardTypeOptions = [
 ];
 
 export default function KnowledgeCardsPage() {
+  const tokens = useThemeStore((s) => s.tokens);
   const {
     cards,
     total,
@@ -64,6 +66,10 @@ export default function KnowledgeCardsPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createForm] = Form.useForm<KnowledgeCardCreateData>();
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editForm] = Form.useForm<any>();
 
   useEffect(() => {
     fetchCards();
@@ -128,18 +134,40 @@ export default function KnowledgeCardsPage() {
     setSelectedCard(null);
   };
 
+  const handleEditOpen = () => {
+    if (!selectedCard) return;
+    editForm.setFieldsValue({
+      title: selectedCard.title,
+      content: selectedCard.content,
+      annotation: selectedCard.annotation,
+      tags: selectedCard.tags,
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!selectedCard) return;
+    try {
+      const values = await editForm.validateFields();
+      setEditLoading(true);
+      await knowledgeCardApi.update(selectedCard.id, values);
+      message.success('卡片已更新');
+      setEditModalOpen(false);
+      const res = await knowledgeCardApi.get(selectedCard.id);
+      setSelectedCard(res.data);
+      fetchCards();
+    } catch {
+      // validation or API error
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   return (
     <div style={{ padding: 24 }}>
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 24,
-        }}
-      >
-        <h2 style={{ margin: 0, color: '#fff' }}>知识卡片</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h2 style={{ margin: 0, color: tokens.text }}>知识卡片</h2>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <Input.Search
             placeholder="搜索标题或内容"
@@ -165,29 +193,81 @@ export default function KnowledgeCardsPage() {
 
       {/* Card Grid */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 48 }}>
-          <Spin size="large" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : cards.length === 0 ? (
-        <Empty description="暂无知识卡片" />
+        <EmptyState
+          icon={<FileTextOutlined />}
+          title="暂无知识卡片"
+          description="在阅读时选中文字，创建你的第一张知识卡片"
+          action={{ label: '新建卡片', onClick: () => setCreateModalOpen(true) }}
+        />
       ) : (
         <>
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
               gap: 16,
             }}
           >
             {cards.map((card) => (
-              <Card
+              <div
                 key={card.id}
-                hoverable
                 onClick={() => handleCardClick(card)}
-                style={{ background: '#1a1a2e', borderColor: '#303030' }}
-                actions={[
+                style={{
+                  background: tokens.cardBg,
+                  border: tokens.cardBorder,
+                  borderRadius: tokens.radius,
+                  padding: 16,
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = tokens.cardShadow || '0 4px 12px rgba(0,0,0,0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <FileTextOutlined style={{ fontSize: 18, color: tokens.primary }} />
+                  <span style={{ fontSize: 14, fontWeight: 600, color: tokens.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {card.title}
+                  </span>
+                  <Tag color={CARD_TYPE_COLORS[card.card_type] || 'default'} style={{ margin: 0 }}>
+                    {CARD_TYPE_LABELS[card.card_type] || card.card_type}
+                  </Tag>
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: tokens.textSecondary,
+                    marginBottom: 8,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: 'vertical',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {card.content}
+                </div>
+                {card.tags && card.tags.length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    {card.tags.map((tag) => (
+                      <Tag key={tag} style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px' }}>
+                        {tag}
+                      </Tag>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
                   <Popconfirm
-                    key="delete"
                     title="确定删除该卡片?"
                     onConfirm={(e) => {
                       e?.stopPropagation();
@@ -199,63 +279,15 @@ export default function KnowledgeCardsPage() {
                   >
                     <DeleteOutlined
                       onClick={(e) => e.stopPropagation()}
-                      style={{ color: '#ff4d4f' }}
+                      style={{ color: '#ff4d4f', fontSize: 14 }}
                     />
-                  </Popconfirm>,
-                ]}
-              >
-                <Card.Meta
-                  avatar={<FileTextOutlined style={{ fontSize: 24, color: '#444' }} />}
-                  title={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 14, color: '#fff' }}>{card.title}</span>
-                      <Tag color={CARD_TYPE_COLORS[card.card_type] || 'default'}>
-                        {CARD_TYPE_LABELS[card.card_type] || card.card_type}
-                      </Tag>
-                    </div>
-                  }
-                  description={
-                    <div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: '#888',
-                          marginBottom: 8,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                        }}
-                      >
-                        {card.content}
-                      </div>
-                      {card.tags && card.tags.length > 0 && (
-                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                          {card.tags.map((tag) => (
-                            <Tag
-                              key={tag}
-                              style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px' }}
-                            >
-                              {tag}
-                            </Tag>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  }
-                />
-              </Card>
+                  </Popconfirm>
+                </div>
+              </div>
             ))}
           </div>
           <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <Pagination
-              current={page}
-              total={total}
-              pageSize={pageSize}
-              onChange={setPage}
-              showSizeChanger={false}
-            />
+            <Pagination current={page} total={total} pageSize={pageSize} onChange={setPage} showSizeChanger={false} />
           </div>
         </>
       )}
@@ -266,7 +298,7 @@ export default function KnowledgeCardsPage() {
         open={drawerOpen}
         onClose={handleDrawerClose}
         width={500}
-        styles={{ body: { background: '#0a0a0a' }, header: { background: '#1a1a1a' } }}
+        styles={{ body: { background: tokens.content }, header: { background: tokens.header } }}
       >
         {drawerLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}>
@@ -280,25 +312,23 @@ export default function KnowledgeCardsPage() {
               </Tag>
             </div>
 
-            <h4 style={{ color: '#fff', marginBottom: 8 }}>内容</h4>
-            <div
-              style={{ color: '#ccc', marginBottom: 24, whiteSpace: 'pre-wrap', lineHeight: 1.8 }}
-            >
+            <h4 style={{ color: tokens.text, marginBottom: 8 }}>内容</h4>
+            <div style={{ color: tokens.textSecondary, marginBottom: 24, whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
               {selectedCard.content}
             </div>
 
             {selectedCard.annotation && (
               <>
-                <h4 style={{ color: '#fff', marginBottom: 8 }}>批注</h4>
+                <h4 style={{ color: tokens.text, marginBottom: 8 }}>批注</h4>
                 <div
                   style={{
-                    color: '#ccc',
+                    color: tokens.textSecondary,
                     marginBottom: 24,
                     whiteSpace: 'pre-wrap',
                     lineHeight: 1.8,
                     padding: '8px 12px',
-                    borderLeft: '3px solid #1677ff',
-                    background: '#1a1a2e',
+                    borderLeft: `3px solid ${tokens.primary}`,
+                    background: tokens.cardBg,
                   }}
                 >
                   {selectedCard.annotation}
@@ -308,17 +338,17 @@ export default function KnowledgeCardsPage() {
 
             {selectedCard.source_passage && (
               <>
-                <h4 style={{ color: '#fff', marginBottom: 8 }}>原文引用</h4>
+                <h4 style={{ color: tokens.text, marginBottom: 8 }}>原文引用</h4>
                 <div
                   style={{
-                    color: '#999',
+                    color: tokens.textMuted,
                     marginBottom: 24,
                     whiteSpace: 'pre-wrap',
                     lineHeight: 1.8,
                     fontStyle: 'italic',
                     padding: '8px 12px',
-                    borderLeft: '3px solid #303030',
-                    background: '#111',
+                    borderLeft: `3px solid ${tokens.border}`,
+                    background: tokens.cardBg,
                   }}
                 >
                   {selectedCard.source_passage}
@@ -328,7 +358,7 @@ export default function KnowledgeCardsPage() {
 
             {selectedCard.tags && selectedCard.tags.length > 0 && (
               <>
-                <h4 style={{ color: '#fff', marginBottom: 8 }}>标签</h4>
+                <h4 style={{ color: tokens.text, marginBottom: 8 }}>标签</h4>
                 <Space style={{ marginBottom: 24 }}>
                   {selectedCard.tags.map((tag) => (
                     <Tag key={tag}>{tag}</Tag>
@@ -337,14 +367,14 @@ export default function KnowledgeCardsPage() {
               </>
             )}
 
-            <div style={{ color: '#666', fontSize: 12, marginTop: 16 }}>
+            <div style={{ color: tokens.textMuted, fontSize: 12, marginTop: 16 }}>
               <div>创建时间: {new Date(selectedCard.created_at).toLocaleString()}</div>
               <div>更新时间: {new Date(selectedCard.updated_at).toLocaleString()}</div>
             </div>
 
             <div style={{ marginTop: 24, display: 'flex', gap: 8 }}>
-              <Button icon={<LinkOutlined />} disabled>
-                关联卡片
+              <Button icon={<EditOutlined />} onClick={handleEditOpen}>
+                编辑
               </Button>
               <Popconfirm
                 title="确定删除该卡片?"
@@ -396,6 +426,32 @@ export default function KnowledgeCardsPage() {
                 { value: 'ai_chat', label: 'AI对话' },
               ]}
             />
+          </Form.Item>
+          <Form.Item name="tags" label="标签">
+            <Select mode="tags" placeholder="输入标签后回车" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal
+        title="编辑知识卡片"
+        open={editModalOpen}
+        onOk={handleEditSave}
+        onCancel={() => setEditModalOpen(false)}
+        confirmLoading={editLoading}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>
+            <Input placeholder="输入卡片标题" />
+          </Form.Item>
+          <Form.Item name="content" label="内容" rules={[{ required: true, message: '请输入内容' }]}>
+            <Input.TextArea rows={4} placeholder="输入卡片内容" />
+          </Form.Item>
+          <Form.Item name="annotation" label="批注">
+            <Input.TextArea rows={2} placeholder="添加批注 (可选)" />
           </Form.Item>
           <Form.Item name="tags" label="标签">
             <Select mode="tags" placeholder="输入标签后回车" />

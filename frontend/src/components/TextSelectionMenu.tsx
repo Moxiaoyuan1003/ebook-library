@@ -1,5 +1,6 @@
 // frontend/src/components/TextSelectionMenu.tsx
 import { useState } from 'react';
+import { useThemeStore } from '../stores/themeStore';
 
 interface TextSelectionMenuProps {
   visible: boolean;
@@ -8,6 +9,8 @@ interface TextSelectionMenuProps {
   onAskAI: () => void;
   onHighlight: (color: string) => void;
   onCopy: () => void;
+  onAddNote: () => void;
+  onAddCard: () => void;
   onClose: () => void;
 }
 
@@ -26,33 +29,30 @@ export default function TextSelectionMenu({
   onAskAI,
   onHighlight,
   onCopy,
+  onAddNote,
+  onAddCard,
   onClose,
 }: TextSelectionMenuProps) {
+  const tokens = useThemeStore((s) => s.tokens);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   if (!visible || !selectedText) return null;
 
-  const handleHighlightClick = () => {
-    setShowColorPicker(!showColorPicker);
-  };
-
-  const handleColorSelect = (color: string) => {
-    onHighlight(color);
-    setShowColorPicker(false);
+  const btnStyle = {
+    background: 'transparent',
+    border: 'none',
+    color: tokens.text,
+    cursor: 'pointer',
+    padding: '6px 10px',
+    borderRadius: 6,
+    fontSize: 13,
+    whiteSpace: 'nowrap' as const,
   };
 
   return (
     <>
-      {/* Backdrop to close menu */}
       <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 999,
-        }}
+        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}
         onClick={onClose}
       />
       <div
@@ -62,53 +62,31 @@ export default function TextSelectionMenu({
           top: position.y,
           transform: 'translate(-50%, -100%)',
           zIndex: 1000,
-          background: '#1f1f1f',
-          borderRadius: 8,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+          background: tokens.cardBg,
+          border: tokens.cardBorder,
+          borderRadius: tokens.radius,
+          boxShadow: tokens.cardShadow || '0 4px 16px rgba(0,0,0,0.4)',
           padding: '6px 4px',
           display: 'flex',
           alignItems: 'center',
           gap: 2,
+          animation: 'menuAppear 0.15s ease-out',
         }}
       >
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onAskAI();
-          }}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#e0e0e0',
-            cursor: 'pointer',
-            padding: '6px 10px',
-            borderRadius: 6,
-            fontSize: 13,
-            whiteSpace: 'nowrap',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#333')}
+          onClick={(e) => { e.stopPropagation(); onAskAI(); }}
+          style={btnStyle}
+          onMouseEnter={(e) => (e.currentTarget.style.background = tokens.sidebar)}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
           问 AI
         </button>
-        <span style={{ width: 1, height: 18, background: '#444' }} />
+        <span style={{ width: 1, height: 18, background: tokens.border }} />
         <div style={{ position: 'relative' }}>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleHighlightClick();
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#e0e0e0',
-              cursor: 'pointer',
-              padding: '6px 10px',
-              borderRadius: 6,
-              fontSize: 13,
-              whiteSpace: 'nowrap',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#333')}
+            onClick={(e) => { e.stopPropagation(); setShowColorPicker(!showColorPicker); }}
+            style={btnStyle}
+            onMouseEnter={(e) => (e.currentTarget.style.background = tokens.sidebar)}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             高亮
@@ -116,35 +94,19 @@ export default function TextSelectionMenu({
           {showColorPicker && (
             <div
               style={{
-                position: 'absolute',
-                top: '100%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                marginTop: 4,
-                background: '#2a2a2a',
-                borderRadius: 8,
-                padding: '6px 8px',
-                display: 'flex',
-                gap: 6,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
+                marginTop: 4, background: tokens.cardBg, border: tokens.cardBorder, borderRadius: tokens.radius, padding: '6px 8px',
+                display: 'flex', gap: 6, boxShadow: tokens.cardShadow || '0 4px 12px rgba(0,0,0,0.3)',
               }}
             >
               {HIGHLIGHT_COLORS.map((item) => (
                 <div
                   key={item.color}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleColorSelect(item.color);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); onHighlight(item.color); setShowColorPicker(false); }}
                   title={item.label}
                   style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: '50%',
-                    background: item.color,
-                    cursor: 'pointer',
-                    border: '2px solid transparent',
-                    transition: 'border-color 0.15s',
+                    width: 22, height: 22, borderRadius: '50%', background: item.color,
+                    cursor: 'pointer', border: '2px solid transparent', transition: 'border-color 0.15s',
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#fff')}
                   onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
@@ -153,23 +115,29 @@ export default function TextSelectionMenu({
             </div>
           )}
         </div>
-        <span style={{ width: 1, height: 18, background: '#444' }} />
+        <span style={{ width: 1, height: 18, background: tokens.border }} />
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onCopy();
-          }}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#e0e0e0',
-            cursor: 'pointer',
-            padding: '6px 10px',
-            borderRadius: 6,
-            fontSize: 13,
-            whiteSpace: 'nowrap',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#333')}
+          onClick={(e) => { e.stopPropagation(); onAddNote(); }}
+          style={btnStyle}
+          onMouseEnter={(e) => (e.currentTarget.style.background = tokens.sidebar)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          批注
+        </button>
+        <span style={{ width: 1, height: 18, background: tokens.border }} />
+        <button
+          onClick={(e) => { e.stopPropagation(); onAddCard(); }}
+          style={btnStyle}
+          onMouseEnter={(e) => (e.currentTarget.style.background = tokens.sidebar)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          记卡片
+        </button>
+        <span style={{ width: 1, height: 18, background: tokens.border }} />
+        <button
+          onClick={(e) => { e.stopPropagation(); onCopy(); }}
+          style={btnStyle}
+          onMouseEnter={(e) => (e.currentTarget.style.background = tokens.sidebar)}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
           复制
